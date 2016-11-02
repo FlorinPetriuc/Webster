@@ -111,9 +111,9 @@ void *pool_worker(void *arg)
                 continue;
             }
 
-            resubmit_to_pool(epoll_fd, &evts[i]);
-
             prm->processor(prm);
+
+            resubmit_to_pool(epoll_fd, &evts[i]);
         }
     }
 
