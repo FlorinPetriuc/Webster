@@ -75,6 +75,11 @@ void remove_from_pool(const int epoll_fd, struct handler_prm_t *prm)
         exit(EXIT_FAILURE);
     }
 
+    if(prm->buffer && prm->buffer_malloced)
+    {
+        free(prm->buffer);
+    }
+
     free(prm);
 }
 
@@ -86,6 +91,8 @@ void *pool_worker(void *arg)
     
     struct handler_prm_t *prm;
     struct epoll_event evts[10];
+
+    time_t now;
 
     while(1)
     {
@@ -107,7 +114,27 @@ void *pool_worker(void *arg)
                (evts[i].events & EPOLLHUP))
             {
                 remove_from_pool(epoll_fd, prm);
-                
+
+                continue;
+            }
+
+            if(prm->has_expiration == 0)
+            {
+                prm->processor(prm);
+
+                resubmit_to_pool(epoll_fd, &evts[i]);
+
+                continue;
+            }
+
+            now = _utcTime();
+
+            if(now >= prm->expiration_date)
+            {
+                logWrite(LOG_TYPE_INFO, "socket %d timed out", 1, prm->sockFD);
+
+                remove_from_pool(epoll_fd, prm);
+
                 continue;
             }
 

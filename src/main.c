@@ -30,11 +30,17 @@ int main(int argc, char **argv)
     acc_str = xmalloc(sizeof(struct handler_prm_t));
     acc_str->sockFD = srvFD;
     acc_str->epoll_fd = epoll_fd;
-    acc_str->processor = handle_http_accept;
-    acc_str->critical = 1;
+
+    acc_str->buffer_malloced = 0;
     acc_str->buffer = NULL;
     acc_str->buf_offset = 0;
     acc_str->buf_len = 0;
+
+    acc_str->critical = 1;
+    acc_str->has_expiration = 0;
+    acc_str->expiration_date = 0;
+
+    acc_str->processor = handle_http_accept;
 
     ret = submit_to_pool(epoll_fd, acc_str);
 

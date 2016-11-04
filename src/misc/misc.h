@@ -24,6 +24,7 @@
 #define IPV6_PRINT_TEMPLATE "%02hhx%02hhx:%02hhx%02hhx:%02hhx%02hhx:%02hhx%02hhx:%02hhx%02hhx:%02hhx%02hhx:%02hhx%02hhx:%02hhx%02hhx"
 #define IPV6_PRINT(X)       (X)[15], (X)[14], (X)[13], (X)[12], (X)[11], (X)[10], (X)[9], (X)[8], (X)[7], (X)[6], (X)[5], (X)[4], (X)[3], (X)[2], (X)[1], (X)[0]
 
+time_t _utcTime();
 void *xmalloc(const unsigned long int size);
 
 #endif

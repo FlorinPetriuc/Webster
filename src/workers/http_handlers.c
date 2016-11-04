@@ -10,8 +10,6 @@ void handle_http_receive(void *arg)
 
     if(readRet <= 0)
     {
-        //logWrite(LOG_TYPE_ERROR, "read %d bytes from %d %s", 3, readRet, prm->sockFD, strerror(errno));
-
         return;
     }
 
@@ -55,12 +53,18 @@ void handle_http_accept(void *arg)
 
     cli_prm = xmalloc(sizeof(struct handler_prm_t));
     cli_prm->sockFD = client;
+    cli_prm->epoll_fd = prm->epoll_fd;
+
+    cli_prm->buffer_malloced = 1;
     cli_prm->buffer = xmalloc(2048);
     cli_prm->buf_len = 2048;
     cli_prm->buf_offset = 0;
+
     cli_prm->critical = 0;
+    cli_prm->has_expiration = 1;
+    cli_prm->expiration_date = _utcTime() + 5;
+
     cli_prm->processor = handle_http_receive;
-    cli_prm->epoll_fd = prm->epoll_fd;
 
     if(submit_to_pool(cli_prm->epoll_fd, cli_prm))
     {
