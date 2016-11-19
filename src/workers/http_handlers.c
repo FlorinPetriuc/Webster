@@ -1,25 +1,54 @@
 #include "../main.h"
 
-void handle_http_receive(void *arg)
+int handle_http_receive(void *arg)
 {
     struct handler_prm_t *prm = arg;
 
+    char *header_end;
+
     int readRet;
 
-    readRet = read(prm->sockFD, prm->buffer + prm->buf_offset, prm->buf_len - prm->buf_offset);
-
-    if(readRet <= 0)
+    if(prm->buf_offset == prm->buf_len - 1)
     {
-        return;
+        return 1;
+    }
+
+    readRet = read(prm->sockFD, prm->buffer + prm->buf_offset, prm->buf_len - prm->buf_offset - 1);
+
+    if(readRet < 0)
+    {
+        if(errno == EAGAIN ||errno == EINTR)
+        {
+            return 0;
+        }
+
+        return 1;
+    }
+
+    if(readRet == 0)
+    {
+        return 0;
     }
 
     prm->buf_offset += readRet;
     prm->buffer[prm->buf_offset] = '\0';
 
-    logWrite(LOG_TYPE_INFO, "read %s", 1, prm->buffer);
+    header_end = strstr(prm->buffer, "\r\n\r\n");
+
+    if(header_end == NULL)
+    {
+        return 0;
+    }
+
+    header_end += MACRO_STRLEN("\r\n\r\n");
+    header_end[0] = '\0';
+
+    logWrite(LOG_TYPE_INFO, "Got request header: %s", 1, prm->buffer);
+
+    return 0;
 }
 
-void handle_http_accept(void *arg)
+int handle_http_accept(void *arg)
 {
     struct handler_prm_t *prm = arg;
     struct handler_prm_t *cli_prm;
@@ -34,7 +63,7 @@ void handle_http_accept(void *arg)
 
     if(client < 0)
     {
-        return;
+        return 1;
     }
 
     logWrite(LOG_TYPE_INFO, "got connection %d", 1, client);
@@ -73,4 +102,6 @@ void handle_http_accept(void *arg)
         free(cli_prm->buffer);
         free(cli_prm);
     }
+
+    return 0;
 }

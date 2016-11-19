@@ -1,7 +1,7 @@
 #ifndef _HANDLERS_H_
 #define _HANDLERS_H_
 
-typedef void (*processor_t)(void *arg);
+typedef int (*processor_t)(void *arg);
 
 struct handler_prm_t
 {

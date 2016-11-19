@@ -19,6 +19,8 @@
             exit(EXIT_FAILURE); \
         }
 
+#define MACRO_STRLEN(x) (sizeof(x) - 1)
+
 #define IPV4_PRINT_TEMPLATE "%hhu.%hhu.%hhu.%hhu"
 #define IPV4_PRINT(X)       (X)[3], (X)[2], (X)[1], (X)[0]
 #define IPV6_PRINT_TEMPLATE "%02hhx%02hhx:%02hhx%02hhx:%02hhx%02hhx:%02hhx%02hhx:%02hhx%02hhx:%02hhx%02hhx:%02hhx%02hhx:%02hhx%02hhx"
