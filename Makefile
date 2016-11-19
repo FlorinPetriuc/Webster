@@ -1,5 +1,5 @@
 CFLG=$(CFLAGS) -c -Werror
-BFILES=./build/obj/log.o ./build/obj/misc.o ./build/obj/server.o ./build/obj/http_handlers.o ./build/obj/pool.o
+BFILES=./build/obj/log.o ./build/obj/misc.o ./build/obj/http.o ./build/obj/server.o ./build/obj/http_handlers.o ./build/obj/pool.o
 OFILES=$(BFILES) ./build/obj/main.o
 
 .PHONY: all
@@ -8,6 +8,9 @@ all: $(OFILES)
 
 ./build/obj/log.o: ./src/log/log.c
 	$(CC) $(CFLG) ./src/log/log.c -o ./build/obj/log.o
+
+./build/obj/http.o: ./src/protocol/http/http.c
+	$(CC) $(CFLG) ./src/protocol/http/http.c -o ./build/obj/http.o
 
 ./build/obj/misc.o: ./src/misc/misc.c
 	$(CC) $(CFLG) ./src/misc/misc.c -o ./build/obj/misc.o
