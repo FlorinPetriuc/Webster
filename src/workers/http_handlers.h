@@ -3,5 +3,6 @@
 
 int handle_http_receive(void *arg);
 int handle_http_accept(void *arg);
+int handle_http_send(void *arg);
 
 #endif

@@ -17,6 +17,8 @@ struct handler_prm_t
     unsigned char has_expiration;
     time_t expiration_date;
 
+    struct http_request_t *request;
+
     processor_t processor;
 };
 

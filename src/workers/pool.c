@@ -80,6 +80,12 @@ void remove_from_pool(const int epoll_fd, struct handler_prm_t *prm)
         free(prm->buffer);
     }
 
+    if(prm->request)
+    {
+        free(prm->request->abs_path);
+        free(prm->request);
+    }
+
     free(prm);
 }
 

@@ -25,3 +25,13 @@ void *xmalloc(const unsigned long int size)
 
 	return ret;
 }
+
+int string_starts_with(const char *haystack, const char *needle)
+{
+    if(memcmp(haystack, needle, strlen(needle)))
+    {
+        return 1;
+    }
+
+    return 0;
+}

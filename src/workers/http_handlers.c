@@ -1,5 +1,10 @@
 #include "../main.h"
 
+int handle_http_send(void *arg)
+{
+    return 0;
+}
+
 int handle_http_receive(void *arg)
 {
     struct handler_prm_t *prm = arg;
@@ -44,6 +49,14 @@ int handle_http_receive(void *arg)
     header_end[0] = '\0';
 
     logWrite(LOG_TYPE_INFO, "Got request header: %s", 1, prm->buffer);
+
+    prm->request = parse_http_header(prm->buffer);
+    if(prm->request == NULL)
+    {
+        return 1;
+    }
+
+    prm->processor = handle_http_send;
 
     return 0;
 }
@@ -93,10 +106,15 @@ int handle_http_accept(void *arg)
     cli_prm->has_expiration = 1;
     cli_prm->expiration_date = _utcTime() + 5;
 
+    cli_prm->request = NULL;
+
     cli_prm->processor = handle_http_receive;
 
     if(submit_to_pool(cli_prm->epoll_fd, cli_prm))
     {
+        logWrite(LOG_TYPE_ERROR, "Could not submit %d to work pool %d", 2,
+                                                    client, cli_prm->epoll_fd);
+
         close(client);
 
         free(cli_prm->buffer);

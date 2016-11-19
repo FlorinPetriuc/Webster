@@ -40,6 +40,8 @@ int main(int argc, char **argv)
     acc_str->has_expiration = 0;
     acc_str->expiration_date = 0;
 
+    acc_str->request = NULL;
+
     acc_str->processor = handle_http_accept;
 
     ret = submit_to_pool(epoll_fd, acc_str);

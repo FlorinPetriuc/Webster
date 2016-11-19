@@ -24,6 +24,7 @@
 #include "debug/debug.h"
 #include "server/server.h"
 #include "misc/misc.h"
+#include "protocol/http/http.h"
 #include "log/log.h"
 #include "workers/handlers.h"
 #include "workers/http_handlers.h"
