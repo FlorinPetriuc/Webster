@@ -6,6 +6,7 @@ typedef int (*processor_t)(void *arg);
 struct handler_prm_t
 {
     int sockFD;
+    int fileFD;
     int epoll_fd;
 
     unsigned char buffer_malloced;

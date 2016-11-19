@@ -1,10 +1,14 @@
 #include "../main.h"
 
+#define HTTP_SERVER_ERROR   "HTTP/1.0 500 Internal Server Error\r\n\r\n"
 #define HTTP_BAD_REQUEST    "HTTP/1.0 400 Bad Request\r\n\r\n"
+#define HTTP_NOT_FOUND      "HTTP/1.0 404 Not Found\r\n\r\n"
 #define HTTP_MAX_HEADER_LEN 2048
 
 int handle_http_send_page(void *arg)
 {
+    struct handler_prm_t *prm = arg;
+
     return 0;
 }
 
@@ -48,11 +52,93 @@ int handle_http_send_bad_request(void *arg)
     return 0;
 }
 
+int handle_http_send_not_found(void *arg)
+{
+    const char *bad_request = HTTP_NOT_FOUND;
+    const int bad_request_len = MACRO_STRLEN(HTTP_NOT_FOUND);
+
+    struct handler_prm_t *prm = arg;
+
+    int ret;
+
+    if(prm->buf_offset == bad_request_len)
+    {
+        return 2;
+    }
+
+    ret = send(prm->sockFD, bad_request + prm->buf_offset, bad_request_len - prm->buf_offset, 0);
+
+    if(ret < 0)
+    {
+        if(errno == EAGAIN) return 0;
+        if(errno == EINTR) return 0;
+        if(errno == EWOULDBLOCK) return 0;
+
+        return 1;
+    }
+
+    if(ret == 0)
+    {
+        return 0;
+    }
+
+    prm->buf_offset += ret;
+
+    if(prm->buf_offset == bad_request_len)
+    {
+        return 2;
+    }
+
+    return 0;
+}
+
+int handle_http_send_server_error(void *arg)
+{
+    const char *bad_request = HTTP_SERVER_ERROR;
+    const int bad_request_len = MACRO_STRLEN(HTTP_SERVER_ERROR);
+
+    struct handler_prm_t *prm = arg;
+
+    int ret;
+
+    if(prm->buf_offset == bad_request_len)
+    {
+        return 2;
+    }
+
+    ret = send(prm->sockFD, bad_request + prm->buf_offset, bad_request_len - prm->buf_offset, 0);
+
+    if(ret < 0)
+    {
+        if(errno == EAGAIN) return 0;
+        if(errno == EINTR) return 0;
+        if(errno == EWOULDBLOCK) return 0;
+
+        return 1;
+    }
+
+    if(ret == 0)
+    {
+        return 0;
+    }
+
+    prm->buf_offset += ret;
+
+    if(prm->buf_offset == bad_request_len)
+    {
+        return 2;
+    }
+
+    return 0;
+}
+
 int handle_http_receive(void *arg)
 {
     struct handler_prm_t *prm = arg;
 
     char *header_end;
+
+    struct stat buf;
 
     int readRet;
 
@@ -114,10 +200,25 @@ int handle_http_receive(void *arg)
     {
         prm->processor = handle_http_send_bad_request;
     }
-    else
+
+    prm->fileFD = open(prm->request->abs_path, O_RDONLY);
+
+    if(prm->fileFD < 0)
     {
-        prm->processor = handle_http_send_page;
+        prm->processor = handle_http_send_not_found;
     }
+
+    if(fstat(prm->fileFD, &buf) != 0)
+    {
+        close(prm->fileFD);
+        prm->fileFD = -1;
+
+        prm->processor = handle_http_send_server_error;
+
+        return 0;
+    }
+
+    prm->processor = handle_http_send_page;
 
     return 0;
 }
@@ -156,6 +257,7 @@ int handle_http_accept(void *arg)
 
     cli_prm = xmalloc(sizeof(struct handler_prm_t));
     cli_prm->sockFD = client;
+    cli_prm->fileFD = -1;
     cli_prm->epoll_fd = prm->epoll_fd;
 
     cli_prm->buffer_malloced = 1;

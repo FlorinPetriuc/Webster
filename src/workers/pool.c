@@ -67,6 +67,11 @@ void remove_from_pool(const int epoll_fd, struct handler_prm_t *prm)
     }
     
     close_connection(prm->sockFD);
+
+    if(prm->fileFD != -1)
+    {
+        close(prm->fileFD);
+    }
     
     if(prm->critical)
     {

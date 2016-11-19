@@ -29,6 +29,7 @@ int main(int argc, char **argv)
 
     acc_str = xmalloc(sizeof(struct handler_prm_t));
     acc_str->sockFD = srvFD;
+    acc_str->fileFD = -1;
     acc_str->epoll_fd = epoll_fd;
 
     acc_str->buffer_malloced = 0;
