@@ -4,6 +4,7 @@
 #define HTTP_BAD_REQUEST    "HTTP/1.0 400 Bad Request\r\n\r\n"
 #define HTTP_NOT_FOUND      "HTTP/1.0 404 Not Found\r\n\r\n"
 #define HTTP_MAX_HEADER_LEN 2048
+#define HTTP_DEFAULT_PAGE   "index.html"
 
 int handle_http_send_page(void *arg)
 {
@@ -141,6 +142,7 @@ int handle_http_receive(void *arg)
     struct stat buf;
 
     int readRet;
+    int len;
 
     if(prm->buf_offset == prm->buf_len - 1)
     {
@@ -199,6 +201,8 @@ int handle_http_receive(void *arg)
     if(prm->request == NULL)
     {
         prm->processor = handle_http_send_bad_request;
+
+        return 0;
     }
 
     prm->fileFD = open(prm->request->abs_path, O_RDONLY);
@@ -206,6 +210,8 @@ int handle_http_receive(void *arg)
     if(prm->fileFD < 0)
     {
         prm->processor = handle_http_send_not_found;
+
+        return 0;
     }
 
     if(fstat(prm->fileFD, &buf) != 0)
@@ -214,6 +220,57 @@ int handle_http_receive(void *arg)
         prm->fileFD = -1;
 
         prm->processor = handle_http_send_server_error;
+
+        return 0;
+    }
+
+    if(!(S_ISDIR(buf.st_mode)))
+    {
+        prm->processor = handle_http_send_page;
+
+        return 0;
+    }
+
+    close(prm->fileFD);
+
+    len = strlen(prm->request->abs_path);
+
+    if(prm->request->abs_path[len - 1] == '/')
+    {
+        prm->request->abs_path = realloc(prm->request->abs_path, len + sizeof(HTTP_DEFAULT_PAGE));
+        memcpy(prm->request->abs_path + len, HTTP_DEFAULT_PAGE, sizeof(HTTP_DEFAULT_PAGE));
+    }
+    else
+    {
+        prm->request->abs_path = realloc(prm->request->abs_path, len + sizeof(HTTP_DEFAULT_PAGE) + 1);
+        sprintf(prm->request->abs_path + len, "/%s", HTTP_DEFAULT_PAGE);
+    }
+
+    prm->fileFD = open(prm->request->abs_path, O_RDONLY);
+
+    if(prm->fileFD < 0)
+    {
+        prm->processor = handle_http_send_not_found;
+
+        return 0;
+    }
+
+    if(fstat(prm->fileFD, &buf) != 0)
+    {
+        close(prm->fileFD);
+        prm->fileFD = -1;
+
+        prm->processor = handle_http_send_server_error;
+
+        return 0;
+    }
+
+    if(S_ISDIR(buf.st_mode))
+    {
+        close(prm->fileFD);
+        prm->fileFD = -1;
+
+        prm->processor = handle_http_send_not_found;
 
         return 0;
     }

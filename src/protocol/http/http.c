@@ -43,6 +43,11 @@ static char *http_resolve_path_and_version(const char *header, unsigned char *ve
 
              ++j;
 
+            if(header[j] == '/')
+            {
+                return NULL;
+            }
+
             continue;
         }
 
