@@ -12,16 +12,35 @@ int handle_http_send_page(void *arg)
 
     int ret;
 
+    const char *mime_type;
+
     logWrite(LOG_TYPE_INFO, "In handle_http_send_page prm is %p", 1, prm);
 
     if(prm->file_header_sent == 0)
     {
         if(prm->file_header_len == 0)
         {
+            if(string_ends_with(prm->request->abs_path, ".html") == 0)
+            {
+                mime_type = "text/html; charset=utf-8";
+            }
+            else if(string_ends_with(prm->request->abs_path, ".css") == 0)
+            {
+                mime_type = "text/css";
+            }
+            else if(string_ends_with(prm->request->abs_path, ".js") == 0)
+            {
+                mime_type = "application/javascript";
+            }
+            else
+            {
+                mime_type = "application/octet-stream";
+            }
+
             prm->file_header_len = sprintf(prm->buffer, "HTTP/1.1 200 OK\r\n"
-                                                        "Content-type: text/html; charset=utf-8\r\n"
+                                                        "Content-type: %s\r\n"
                                                         "Content-Length: %u\r\n"
-                                                        "\r\n", prm->file_len);
+                                                        "\r\n", mime_type, prm->file_len);
         }
 
         ret = send(prm->sockFD, prm->buffer + prm->buf_offset, prm->file_header_len - prm->buf_offset, 0);

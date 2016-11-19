@@ -35,3 +35,21 @@ int string_starts_with(const char *haystack, const char *needle)
 
     return 0;
 }
+
+int string_ends_with(const char *haystack, const char *needle)
+{
+    int hlen = strlen(haystack);
+    int nlen = strlen(needle);
+
+    if(hlen < nlen)
+    {
+        return 1;
+    }
+
+    if(memcmp(haystack + hlen - nlen, needle, nlen))
+    {
+        return 1;
+    }
+
+    return 0;
+}

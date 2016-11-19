@@ -30,5 +30,6 @@ time_t _utcTime();
 void *xmalloc(const unsigned long int size);
 
 int string_starts_with(const char *haystack, const char *needle);
+int string_ends_with(const char *haystack, const char *needle);
 
 #endif
