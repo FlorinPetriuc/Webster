@@ -22,10 +22,13 @@ The library depends on libpthread.
 3. Run:<br />
 	```bash
     cd build/bin
-	$ sudo ./webster -wdir=<your website directory> -logfile=<log file path>
+	$ sudo ./webster -wdir=<your website directory> -logfile=<log file path> -workers=<number of workers>
 	```
 	
 ## Usage
 
 Setup Webster as a daemon on your system and run the appropriate wdir parameter.
-Optionally you can set a log file to monitor the application.
+Optionally you can set a log file to monitor the application and number of workers.
+Default website directory is "."
+Default logfile is stdout
+Default number of workers is 8
