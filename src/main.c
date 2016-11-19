@@ -1,5 +1,22 @@
 #include "main.h"
 
+static const char *get_cmd_parameter(const int argc, char **argv, const char *param)
+{
+    int i;
+
+    for(i = 1; i < argc; ++i)
+    {
+        if(string_starts_with(argv[i], param))
+        {
+            continue;
+        }
+
+        return argv[i] + strlen(param);
+    }
+
+    return NULL;
+}
+
 int main(int argc, char **argv)
 {
     int ret;
@@ -8,10 +25,15 @@ int main(int argc, char **argv)
 
     struct handler_prm_t *acc_str;
 
+    const char *working_dir = NULL;
+
     logInit(NULL);
     logWrite(LOG_TYPE_INFO, "Starting up webster v%d", 1, WEBSTER_VERSION);
 
     signal(SIGPIPE, SIG_IGN);
+
+    working_dir = get_cmd_parameter(argc, argv, "-wdir=");
+    http_set_working_directory(working_dir);
 
     epoll_fd = initialize_pool();
 

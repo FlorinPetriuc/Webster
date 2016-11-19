@@ -18,5 +18,6 @@ struct http_request_t
 };
 
 struct http_request_t *parse_http_header(const char *header);
+void http_set_working_directory(const char *path);
 
 #endif

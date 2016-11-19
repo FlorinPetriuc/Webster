@@ -3,6 +3,24 @@
 static const char *working_directory = ".";
 static int working_directory_len = 1;
 
+void http_set_working_directory(const char *path)
+{
+    if(path == NULL)
+    {
+        working_directory = ".";
+        working_directory_len = 1;
+
+        logWrite(LOG_TYPE_INFO, "Working directory is %s", 1, working_directory);
+
+        return;
+    }
+
+    working_directory = path;
+    working_directory_len = strlen(working_directory);
+
+    logWrite(LOG_TYPE_INFO, "Working directory is %s", 1, working_directory);
+}
+
 static char *http_resolve_path_and_version(const char *header, unsigned char *version_major,
                                                                 unsigned char *version_minor)
 {
