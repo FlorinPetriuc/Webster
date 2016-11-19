@@ -3,8 +3,15 @@ BFILES=./build/obj/log.o ./build/obj/misc.o ./build/obj/http.o ./build/obj/serve
 OFILES=$(BFILES) ./build/obj/main.o
 
 .PHONY: all
-all: $(OFILES)
-	$(CC) $(LDFLAGS) $(OFILES) -o ./build/bin/webster -lpthread -lssl -lcrypto -ldl
+all: directories program
+
+directories:
+	mkdir -p ./build
+	mkdir -p ./build/obj
+	mkdir -p ./build/bin
+
+program: $(OFILES)
+	$(CC) $(LDFLAGS) $(OFILES) -o ./build/bin/webster -lpthread
 
 ./build/obj/log.o: ./src/log/log.c
 	$(CC) $(CFLG) ./src/log/log.c -o ./build/obj/log.o

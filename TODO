@@ -1,7 +1,0 @@
-static http server
-dynamic http server
-static https server
-dynamic https server
-websocket server
-GCM server
-MQTT server
