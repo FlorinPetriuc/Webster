@@ -59,6 +59,8 @@ int start_server(const unsigned short int port)
 
 		return -1;
 	}
+
+    logWrite(LOG_TYPE_INFO, "Started server socket %d on port %hu", 2, fd, port);
     
     return fd;
 }

@@ -41,8 +41,12 @@ int main(int argc, char **argv)
 
     const char *working_dir = NULL;
     const char *logfile = NULL;
+
     const char *numWorkersC;
     unsigned int numWorkers = 8;
+
+    const char *portC;
+    unsigned short int port = 80;
 
     logInit(NULL);
     logWrite(LOG_TYPE_INFO, "Starting up webster v%d", 1, WEBSTER_VERSION);
@@ -67,6 +71,13 @@ int main(int argc, char **argv)
         numWorkers = 8;
     }
 
+    portC = get_cmd_parameter(argc, argv, "-port=");
+
+    if(sscanf(portC, "%hu", &port) != 1)
+    {
+        port = 80;
+    }
+
     epoll_fd = initialize_pool();
 
     if(epoll_fd < 0)
@@ -74,7 +85,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    srvFD = start_server(80);
+    srvFD = start_server(port);
 
     if(srvFD < 0)
     {
