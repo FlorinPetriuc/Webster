@@ -27,6 +27,8 @@ int main(int argc, char **argv)
 
     const char *working_dir = NULL;
     const char *logfile = NULL;
+    const char *numWorkersC;
+    unsigned int numWorkers = 8;
 
     logInit(NULL);
     logWrite(LOG_TYPE_INFO, "Starting up webster v%d", 1, WEBSTER_VERSION);
@@ -38,6 +40,18 @@ int main(int argc, char **argv)
 
     logfile = get_cmd_parameter(argc, argv, "-logfile=");
     logInit(logfile);
+
+    numWorkersC = get_cmd_parameter(argc, argv, "-workers=");
+
+    if(sscanf(numWorkersC, "%u", &numWorkers) != 1)
+    {
+        numWorkers = 8;
+    }
+
+    if(numWorkers <= 0)
+    {
+        numWorkers = 8;
+    }
 
     epoll_fd = initialize_pool();
 
@@ -81,7 +95,9 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    start_pool_threads(7, &epoll_fd);
+    logWrite(LOG_TYPE_INFO, "Initializing %u workers", 1, numWorkers);
+
+    start_pool_threads(numWorkers - 1, &epoll_fd);
     pool_worker(&epoll_fd);
 
     return 0;

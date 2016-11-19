@@ -22,7 +22,7 @@ The library depends on libpthread.
 3. Run:<br />
 	```bash
     cd build/bin
-	$ sudo ./Webster -wdir=<your website directory> -logfile=<log file path>
+	$ sudo ./webster -wdir=<your website directory> -logfile=<log file path>
 	```
 	
 ## Usage
