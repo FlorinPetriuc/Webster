@@ -10,6 +10,97 @@ int handle_http_send_page(void *arg)
 {
     struct handler_prm_t *prm = arg;
 
+    int ret;
+
+    logWrite(LOG_TYPE_INFO, "In handle_http_send_page prm is %p", 1, prm);
+
+    if(prm->file_header_sent == 0)
+    {
+        if(prm->file_header_len == 0)
+        {
+            prm->file_header_len = sprintf(prm->buffer, "HTTP/1.1 200 OK\r\n"
+                                                        "Content-type: text/html; charset=utf-8\r\n"
+                                                        "Content-Length: %u\r\n"
+                                                        "\r\n", prm->file_len);
+        }
+
+        ret = send(prm->sockFD, prm->buffer + prm->buf_offset, prm->file_header_len - prm->buf_offset, 0);
+
+        if(ret < 0)
+        {
+            if(errno == EAGAIN) return 0;
+            if(errno == EINTR) return 0;
+            if(errno == EWOULDBLOCK) return 0;
+
+            return 1;
+        }
+
+        if(ret == 0)
+        {
+            return 0;
+        }
+
+        prm->buf_offset += ret;
+
+        if(prm->buf_offset < prm->file_header_len)
+        {
+            return 0;
+        }
+
+        prm->buf_offset = 0;
+        prm->file_header_sent = 1;
+
+        logWrite(LOG_TYPE_INFO, "File header sent", 0);
+    }
+
+    ret = sendfile(prm->sockFD, prm->fileFD, NULL, prm->file_len - prm->buf_offset);
+
+    if(ret < 0)
+    {
+        if(errno == EAGAIN) return 0;
+        if(errno == EINTR) return 0;
+        if(errno == EWOULDBLOCK) return 0;
+
+        return 1;
+    }
+
+    if(ret == 0)
+    {
+        return 0;
+    }
+
+    prm->buf_offset += ret;
+
+    prm->expiration_date = _utcTime() + 5;
+
+    if(prm->file_len != prm->buf_offset)
+    {
+        return 0;
+    }
+
+    logWrite(LOG_TYPE_INFO, "Request completed", 0);
+
+    if(prm->request->version_major < 1)
+    {
+        return 2;
+    }
+
+    if(prm->request->version_major == 1 && prm->request->version_minor == 0)
+    {
+        return 2;
+    }
+
+    close(prm->fileFD);
+    prm->fileFD = -1;
+
+    prm->buf_offset = 0;
+
+    free(prm->request->abs_path);
+    free(prm->request);
+    prm->request = NULL;
+
+    prm->processor = handle_http_receive;
+
     return 0;
 }
 
@@ -196,6 +287,7 @@ int handle_http_receive(void *arg)
     prm->expiration_date = _utcTime() + 5;
 
     prm->buf_offset = 0;
+    prm->file_header_sent = 0;
 
     prm->request = parse_http_header(prm->buffer);
     if(prm->request == NULL)
@@ -226,6 +318,9 @@ int handle_http_receive(void *arg)
 
     if(!(S_ISDIR(buf.st_mode)))
     {
+        prm->file_len = buf.st_size;
+        prm->file_header_len = 0;
+
         prm->processor = handle_http_send_page;
 
         return 0;
@@ -275,6 +370,9 @@ int handle_http_receive(void *arg)
         return 0;
     }
 
+    prm->file_len = buf.st_size;
+    prm->file_header_len = 0;
+
     prm->processor = handle_http_send_page;
 
     return 0;
@@ -321,7 +419,10 @@ int handle_http_accept(void *arg)
     cli_prm->buf_len = HTTP_MAX_HEADER_LEN;
     cli_prm->buffer = xmalloc(cli_prm->buf_len);
     cli_prm->buf_offset = 0;
+    cli_prm->file_len = 0;
+    cli_prm->file_header_len = 0;
 
+    cli_prm->file_header_sent = 0;
     cli_prm->critical = 0;
     cli_prm->has_expiration = 1;
     cli_prm->expiration_date = _utcTime() + 5;

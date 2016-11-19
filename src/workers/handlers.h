@@ -13,7 +13,10 @@ struct handler_prm_t
     unsigned char *buffer;
     unsigned int buf_offset;
     unsigned int buf_len;
+    unsigned int file_len;
+    unsigned int file_header_len;
 
+    unsigned char file_header_sent;
     unsigned char critical;
     unsigned char has_expiration;
     time_t expiration_date;

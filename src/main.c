@@ -36,7 +36,10 @@ int main(int argc, char **argv)
     acc_str->buffer = NULL;
     acc_str->buf_offset = 0;
     acc_str->buf_len = 0;
+    acc_str->file_len = 0;
+    acc_str->file_header_len = 0;
 
+    acc_str->file_header_sent = 0;
     acc_str->critical = 1;
     acc_str->has_expiration = 0;
     acc_str->expiration_date = 0;
