@@ -1,7 +1,50 @@
 #include "../main.h"
 
-int handle_http_send(void *arg)
+#define HTTP_BAD_REQUEST    "HTTP/1.0 400 Bad Request\r\n\r\n"
+#define HTTP_MAX_HEADER_LEN 2048
+
+int handle_http_send_page(void *arg)
 {
+    return 0;
+}
+
+int handle_http_send_bad_request(void *arg)
+{
+    const char *bad_request = HTTP_BAD_REQUEST;
+    const int bad_request_len = MACRO_STRLEN(HTTP_BAD_REQUEST);
+
+    struct handler_prm_t *prm = arg;
+
+    int ret;
+
+    if(prm->buf_offset == bad_request_len)
+    {
+        return 2;
+    }
+
+    ret = send(prm->sockFD, bad_request + prm->buf_offset, bad_request_len - prm->buf_offset, 0);
+
+    if(ret < 0)
+    {
+        if(errno == EAGAIN) return 0;
+        if(errno == EINTR) return 0;
+        if(errno == EWOULDBLOCK) return 0;
+
+        return 1;
+    }
+
+    if(ret == 0)
+    {
+        return 0;
+    }
+
+    prm->buf_offset += ret;
+
+    if(prm->buf_offset == bad_request_len)
+    {
+        return 2;
+    }
+
     return 0;
 }
 
@@ -22,10 +65,9 @@ int handle_http_receive(void *arg)
 
     if(readRet < 0)
     {
-        if(errno == EAGAIN ||errno == EINTR)
-        {
-            return 0;
-        }
+        if(errno == EAGAIN) return 0;
+        if(errno == EINTR) return 0;
+        if(errno == EWOULDBLOCK) return 0;
 
         return 1;
     }
@@ -42,6 +84,19 @@ int handle_http_receive(void *arg)
 
     if(header_end == NULL)
     {
+        if(prm->buf_offset < prm->buf_len - 1)
+        {
+            return 0;
+        }
+
+        logWrite(LOG_TYPE_ERROR, "Request header is too long", 0);
+
+        prm->expiration_date = _utcTime() + 5;
+
+        prm->buf_offset = 0;
+
+        prm->processor = handle_http_send_bad_request;
+
         return 0;
     }
 
@@ -50,13 +105,19 @@ int handle_http_receive(void *arg)
 
     logWrite(LOG_TYPE_INFO, "Got request header: %s", 1, prm->buffer);
 
+    prm->expiration_date = _utcTime() + 5;
+
+    prm->buf_offset = 0;
+
     prm->request = parse_http_header(prm->buffer);
     if(prm->request == NULL)
     {
-        return 1;
+        prm->processor = handle_http_send_bad_request;
     }
-
-    prm->processor = handle_http_send;
+    else
+    {
+        prm->processor = handle_http_send_page;
+    }
 
     return 0;
 }
@@ -98,8 +159,8 @@ int handle_http_accept(void *arg)
     cli_prm->epoll_fd = prm->epoll_fd;
 
     cli_prm->buffer_malloced = 1;
-    cli_prm->buffer = xmalloc(2048);
-    cli_prm->buf_len = 2048;
+    cli_prm->buf_len = HTTP_MAX_HEADER_LEN;
+    cli_prm->buffer = xmalloc(cli_prm->buf_len);
     cli_prm->buf_offset = 0;
 
     cli_prm->critical = 0;

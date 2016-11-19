@@ -149,9 +149,14 @@ void *pool_worker(void *arg)
                 continue;
             }
 
-            prm->processor(prm);
-
-            resubmit_to_pool(epoll_fd, &evts[i]);
+            if(prm->processor(prm))
+            {
+                remove_from_pool(epoll_fd, prm);
+            }
+            else
+            {
+                resubmit_to_pool(epoll_fd, &evts[i]);
+            }
         }
     }
 

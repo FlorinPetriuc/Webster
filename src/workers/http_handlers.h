@@ -3,6 +3,7 @@
 
 int handle_http_receive(void *arg);
 int handle_http_accept(void *arg);
-int handle_http_send(void *arg);
+int handle_http_send_page(void *arg);
+int handle_http_send_bad_request(void *arg);
 
 #endif
