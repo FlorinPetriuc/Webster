@@ -1,11 +1,11 @@
 # Webster
 
 Webster is a static content multithreaded webserver written in C based on epoll.
-Supports HTTP 1.0 and HTTP 1.1.
+It supports HTTP 1.0 and HTTP 1.1.
 
 ## Dependencies
 
-The library depends on libpthread.
+The apllication depends on libpthread.
 
 ## Installation
 
@@ -27,8 +27,8 @@ The library depends on libpthread.
 	
 ## Usage
 
-Setup Webster as a daemon on your system and run the appropriate wdir parameter.
+Setup Webster as a daemon on your system and run using the appropriate wdir parameter.
 Optionally you can set a log file to monitor the application and number of workers.
-Default website directory is "."
-Default logfile is stdout
-Default number of workers is 8
+Default website directory is "."<br />
+Default logfile is stdout<br />
+Default number of workers is 8<br />
