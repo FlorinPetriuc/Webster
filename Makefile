@@ -1,3 +1,17 @@
+#
+# Copyright (C) 2016 Florin Petriuc. All rights reserved.
+# Initial release: Florin Petriuc <petriuc.florin@gmail.com>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License version
+# 2 as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+
 CFLG=$(CFLAGS) -c -Werror
 BFILES=./build/obj/log.o ./build/obj/misc.o ./build/obj/http.o ./build/obj/server.o ./build/obj/http_handlers.o ./build/obj/pool.o
 OFILES=$(BFILES) ./build/obj/main.o
