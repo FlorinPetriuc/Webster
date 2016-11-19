@@ -26,6 +26,7 @@ int main(int argc, char **argv)
     struct handler_prm_t *acc_str;
 
     const char *working_dir = NULL;
+    const char *logfile = NULL;
 
     logInit(NULL);
     logWrite(LOG_TYPE_INFO, "Starting up webster v%d", 1, WEBSTER_VERSION);
@@ -34,6 +35,9 @@ int main(int argc, char **argv)
 
     working_dir = get_cmd_parameter(argc, argv, "-wdir=");
     http_set_working_directory(working_dir);
+
+    logfile = get_cmd_parameter(argc, argv, "-logfile=");
+    logInit(logfile);
 
     epoll_fd = initialize_pool();
 
