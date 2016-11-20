@@ -1,11 +1,11 @@
 # Webster
 
 Webster is a static content multithreaded webserver written in C based on epoll.
-It supports HTTP 1.0 and HTTP 1.1.
+It supports tls and non-encrypted HTTP 1.0 or HTTP 1.1 get requests.
 
 ## Dependencies
 
-The apllication depends on libpthread.
+The apllication depends on libpthread and libopenssl.
 
 ## Installation
 
@@ -22,7 +22,7 @@ The apllication depends on libpthread.
 3. Run:<br />
 	```bash
     cd build/bin
-	$ sudo ./webster -wdir=<your website directory> -logfile=<log file path> -workers=<number of workers> -port=<http server port>
+	$ sudo ./webster -wdir=<your website directory> -logfile=<log file path> -workers=<number of workers> -port=<http server port> -sPort=<https server port> -certificate=<ssl certificate path with RSA key and chain authority>
 	```
 	
 ## Usage
@@ -33,3 +33,7 @@ Default website directory is "."<br />
 Default logfile is stdout<br />
 Default number of workers is 8<br />
 Default port number is 80<br />
+Default sPort number is 443<br />
+Default certificate path is "./certificate.crt"<br />
+
+Parameters port and sPort may be configured to have the same value. Webster can distinguish unencrypted requests from TLS requests.
