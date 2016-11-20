@@ -48,6 +48,7 @@ static int pool_submit_server_socket(const int srvFD, const int epoll_fd,
 
     acc_str = xmalloc(sizeof(struct handler_prm_t));
     acc_str->sockFD = srvFD;
+    acc_str->ssl = NULL;
     acc_str->fileFD = -1;
     acc_str->epoll_fd = epoll_fd;
 

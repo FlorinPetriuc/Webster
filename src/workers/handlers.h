@@ -30,6 +30,8 @@ struct handler_prm_t
     int fileFD;
     int epoll_fd;
 
+    SSL *ssl;
+
     enum http_comm_type_t comm_type;
 
     unsigned char buffer_malloced;

@@ -445,6 +445,7 @@ int handle_http_accept(void *arg)
 
     cli_prm = xmalloc(sizeof(struct handler_prm_t));
     cli_prm->sockFD = client;
+    cli_prm->ssl = NULL;
     cli_prm->fileFD = -1;
     cli_prm->epoll_fd = prm->epoll_fd;
 

@@ -33,13 +33,13 @@
 
 #include "openssl/ssl.h"
 #include "openssl/err.h"
-#include "openssl/sha.h"
 
 #include "version.h"
 
 #include "debug/debug.h"
 #include "server/server.h"
 #include "misc/misc.h"
+#include "security/ssl.h"
 #include "protocol/http/http.h"
 #include "log/log.h"
 #include "workers/handlers.h"

@@ -79,8 +79,15 @@ void remove_from_pool(const int epoll_fd, struct handler_prm_t *prm)
 
         exit(EXIT_FAILURE);
     }
-    
-    close_connection(prm->sockFD);
+
+    if(prm->ssl)
+    {
+        close_secure_connection(prm->ssl);
+    }
+    else
+    {
+        close_connection(prm->sockFD);
+    }
 
     if(prm->fileFD != -1)
     {

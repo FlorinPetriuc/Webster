@@ -13,7 +13,7 @@
 #
 
 CFLG=$(CFLAGS) -c -Werror
-BFILES=./build/obj/log.o ./build/obj/misc.o ./build/obj/http.o ./build/obj/server.o ./build/obj/http_handlers.o ./build/obj/https_handlers.o ./build/obj/pool.o
+BFILES=./build/obj/ssl.o ./build/obj/log.o ./build/obj/misc.o ./build/obj/http.o ./build/obj/server.o ./build/obj/http_handlers.o ./build/obj/https_handlers.o ./build/obj/pool.o
 OFILES=$(BFILES) ./build/obj/main.o
 
 .PHONY: all
@@ -25,10 +25,13 @@ directories:
 	mkdir -p ./build/bin
 
 program: $(OFILES)
-	$(CC) $(LDFLAGS) $(OFILES) -o ./build/bin/webster -lpthread
+	$(CC) $(LDFLAGS) $(OFILES) -o ./build/bin/webster -lpthread -lssl
 
 ./build/obj/log.o: ./src/log/log.c
 	$(CC) $(CFLG) ./src/log/log.c -o ./build/obj/log.o
+
+./build/obj/ssl.o: ./src/security/ssl.c
+	$(CC) $(CFLG) ./src/security/ssl.c -o ./build/obj/ssl.o
 
 ./build/obj/http.o: ./src/protocol/http/http.c
 	$(CC) $(CFLG) ./src/protocol/http/http.c -o ./build/obj/http.o
