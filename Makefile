@@ -25,7 +25,7 @@ directories:
 	mkdir -p ./build/bin
 
 program: $(OFILES)
-	$(CC) $(LDFLAGS) $(OFILES) -o ./build/bin/webster -lpthread -lssl
+	$(CC) $(LDFLAGS) $(OFILES) -o ./build/bin/webster -lpthread -lssl -lcrypto
 
 ./build/obj/log.o: ./src/log/log.c
 	$(CC) $(CFLG) ./src/log/log.c -o ./build/obj/log.o

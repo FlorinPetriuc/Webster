@@ -15,6 +15,10 @@
 #ifndef _SSL_H_
 #define _SSL_H_
 
+int ssl_init();
+
+SSL *ssl_encap_connection(const int fd, const char *certificate);
+
 void close_secure_connection(SSL *ssl);
 
 #endif

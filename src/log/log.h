@@ -25,5 +25,6 @@ enum log_type_t
 int logInit(const char *log_file);
 
 void logWrite(enum log_type_t type, const char *template, const unsigned int n, ...);
+void log_ssl_errors();
 
 #endif

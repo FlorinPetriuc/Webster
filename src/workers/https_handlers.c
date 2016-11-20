@@ -16,5 +16,17 @@
 
 int handle_https_accept(void *arg)
 {
+    struct handler_prm_t *prm = arg;
+
+    if(prm->ssl == NULL)
+    {
+        prm->ssl = ssl_encap_connection(prm->sockFD, prm->certificate);
+
+        if(prm->ssl == NULL)
+        {
+            return 1;
+        }
+    }
+
     return 0;
 }

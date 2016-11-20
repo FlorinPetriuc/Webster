@@ -15,12 +15,18 @@
 #include "../main.h"
 
 static int log_fd = STDOUT_FILENO;
+static FILE *log_stream = NULL;
+
+static pthread_mutex_t log_mtx;
 
 int logInit(const char *log_file)
 {
+    INIT_MUTEX(log_mtx);
+
     if(log_file == NULL)
     {
         log_fd = STDOUT_FILENO;
+        log_stream = stdout;
 
         return 0;
     }
@@ -35,6 +41,8 @@ int logInit(const char *log_file)
 
         return -1;
     }
+
+    log_stream = fdopen(log_fd, "w");
 
     return 0;
 }
@@ -83,5 +91,23 @@ void logWrite(enum log_type_t type, const char *template, const unsigned int n, 
 
     buffer[i] = '\n';
 
+    TAKE_MUTEX(log_mtx);
     write(log_fd, buffer, i + 1);
+    RELEASE_MUTEX(log_mtx);
+}
+
+void log_ssl_errors()
+{
+    if(log_stream == NULL)
+    {
+        return;
+    }
+
+    TAKE_MUTEX(log_mtx);
+
+    fseek(log_stream, 0, SEEK_END);
+
+    ERR_print_errors_fp(log_stream);
+
+    RELEASE_MUTEX(log_mtx);
 }
