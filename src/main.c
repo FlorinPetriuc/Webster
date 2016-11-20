@@ -88,9 +88,11 @@ int main(int argc, char **argv)
 
     const char *certificate = "./certificate.crt";
 
-    const char *portC = NULL;
+    const char *sTemp = NULL;
     unsigned short int port = 80;
     unsigned short int sPort = 443;
+
+    unsigned char no_ssl = 0;
 
     logInit(NULL);
     logWrite(LOG_TYPE_INFO, "Starting up webster v%d", 1, WEBSTER_VERSION);
@@ -120,18 +122,25 @@ int main(int argc, char **argv)
         numWorkers = 8;
     }
 
-    portC = get_cmd_parameter(argc, argv, "-port=");
-    if(portC &&
-       sscanf(portC, "%hu", &port) != 1)
+    sTemp = get_cmd_parameter(argc, argv, "-port=");
+    if(sTemp &&
+       sscanf(sTemp, "%hu", &port) != 1)
     {
         port = 80;
     }
 
-    portC = get_cmd_parameter(argc, argv, "-sPort=");
-    if(portC &&
-       sscanf(portC, "%hu", &sPort) != 1)
+    sTemp = get_cmd_parameter(argc, argv, "-sPort=");
+    if(sTemp &&
+       sscanf(sTemp, "%hu", &sPort) != 1)
     {
         sPort = 443;
+    }
+
+    sTemp = get_cmd_parameter(argc, argv, "-no_ssl=");
+    if(sTemp &&
+       sscanf(sTemp, "%hhu", &no_ssl) != 1)
+    {
+        no_ssl = 0;
     }
 
     certificate = get_cmd_parameter(argc, argv, "-certificate=");
@@ -143,7 +152,15 @@ int main(int argc, char **argv)
     epoll_fd = initialize_pool();
     srvFD = start_server(port);
 
-    if(port == sPort)
+    if(no_ssl)
+    {
+        if(pool_submit_server_socket(srvFD, epoll_fd,
+                                            UNENCRYPTED_HTTP, NULL) < 0)
+        {
+            return 1;
+        }
+    }
+    else if(port == sPort)
     {
         if(pool_submit_server_socket(srvFD, epoll_fd,
                         ENCRYPTED_OR_UNENCRYPTED_HTTP, certificate) < 0)

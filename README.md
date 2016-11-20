@@ -22,7 +22,7 @@ The apllication depends on libpthread and libopenssl.
 3. Run:<br />
 	```bash
     cd build/bin
-	$ sudo ./webster -wdir=<your website directory> -logfile=<log file path> -workers=<number of workers> -port=<http server port> -sPort=<https server port> -certificate=<ssl certificate path with RSA key and chain authority>
+	$ sudo ./webster -wdir=<your website directory> -logfile=<log file path> -workers=<number of workers> -port=<http server port> -sPort=<https server port> -certificate=<ssl certificate path with RSA key and chain authority> -no_ssl=<0 or 1>
 	```
 	
 ## Usage
@@ -35,5 +35,6 @@ Default number of workers is 8<br />
 Default port number is 80<br />
 Default sPort number is 443<br />
 Default certificate path is "./certificate.crt"<br />
+Default no_ssl value is 0<br />
 
 Parameters port and sPort may be configured to have the same value. Webster can distinguish unencrypted requests from TLS requests.
