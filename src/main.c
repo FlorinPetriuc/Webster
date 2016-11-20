@@ -84,7 +84,7 @@ int main(int argc, char **argv)
     const char *numWorkersC = NULL;
     unsigned int numWorkers = 8;
 
-    const char *certificate = NULL;
+    const char *certificate = "./certificate.crt";
 
     const char *portC = NULL;
     unsigned short int port = 80;
@@ -128,6 +128,10 @@ int main(int argc, char **argv)
     }
 
     certificate = get_cmd_parameter(argc, argv, "-certificate=");
+    if(certificate == NULL)
+    {
+        certificate = "./certificate.crt";
+    }
 
     epoll_fd = initialize_pool();
     srvFD = start_server(port);
