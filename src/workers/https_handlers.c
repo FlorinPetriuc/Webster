@@ -14,9 +14,17 @@
 
 #include "../main.h"
 
+int handle_https_receive(void *arg)
+{
+    return 0;
+}
+
 int handle_https_accept(void *arg)
 {
     struct handler_prm_t *prm = arg;
+
+    int accept_ret;
+    int err_ret;
 
     if(prm->ssl == NULL)
     {
@@ -28,5 +36,34 @@ int handle_https_accept(void *arg)
         }
     }
 
-    return 0;
+    ERR_clear_error();
+
+    accept_ret = SSL_accept(prm->ssl);
+
+    if(accept_ret > 0)
+    {
+        prm->expiration_date = _utcTime() + 5;
+        prm->processor = handle_https_receive;
+
+        return 0;
+    }
+
+    if(errno == EAGAIN || errno == EINTR ||
+       errno == EWOULDBLOCK)
+    {
+        return 0;
+    }
+
+    err_ret = SSL_get_error(prm->ssl, accept_ret);
+
+    if(err_ret == SSL_ERROR_WANT_READ || err_ret == SSL_ERROR_WANT_WRITE ||
+       err_ret == SSL_ERROR_WANT_ACCEPT)
+    {
+        return 0;
+    }
+
+    logWrite(LOG_TYPE_ERROR, "ssl accept failed", 0);
+    log_ssl_errors();
+
+    return 1;
 }
