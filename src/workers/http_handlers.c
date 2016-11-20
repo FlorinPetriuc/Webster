@@ -404,6 +404,43 @@ int handle_http_receive(void *arg)
     return 0;
 }
 
+int handle_http_or_https_check(void *arg)
+{
+    struct handler_prm_t *prm = arg;
+
+    int ret;
+
+    unsigned char type;
+
+    ret = recv(prm->sockFD, &type, 1, MSG_PEEK);
+
+    if(ret < 0)
+    {
+        if(errno == EAGAIN) return 0;
+        if(errno == EINTR) return 0;
+        if(errno == EWOULDBLOCK) return 0;
+
+        return 1;
+    }
+
+    if(ret == 0)
+    {
+        return 0;
+    }
+
+    //check for TLS client hello
+    if(type == 0x16)
+    {
+        prm->processor = handle_https_accept;
+    }
+    else
+    {
+        prm->processor = handle_http_receive;
+    }
+
+    return prm->processor(arg);
+}
+
 int handle_http_accept(void *arg)
 {
     struct handler_prm_t *prm = arg;
@@ -465,6 +502,12 @@ int handle_http_accept(void *arg)
         case UNENCRYPTED_HTTP:
         {
             cli_prm->processor = handle_http_receive;
+        }
+        break;
+
+        case ENCRYPTED_OR_UNENCRYPTED_HTTP:
+        {
+            cli_prm->processor = handle_http_or_https_check;
         }
         break;
 
