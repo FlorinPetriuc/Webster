@@ -44,6 +44,7 @@
 #include "log/log.h"
 #include "workers/handlers.h"
 #include "workers/http_handlers.h"
+#include "workers/https_handlers.h"
 #include "workers/pool.h"
 
 #endif

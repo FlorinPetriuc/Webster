@@ -13,7 +13,7 @@
 #
 
 CFLG=$(CFLAGS) -c -Werror
-BFILES=./build/obj/log.o ./build/obj/misc.o ./build/obj/http.o ./build/obj/server.o ./build/obj/http_handlers.o ./build/obj/pool.o
+BFILES=./build/obj/log.o ./build/obj/misc.o ./build/obj/http.o ./build/obj/server.o ./build/obj/http_handlers.o ./build/obj/https_handlers.o ./build/obj/pool.o
 OFILES=$(BFILES) ./build/obj/main.o
 
 .PHONY: all
@@ -44,6 +44,9 @@ program: $(OFILES)
 
 ./build/obj/http_handlers.o: ./src/workers/http_handlers.c
 	$(CC) $(CFLG) ./src/workers/http_handlers.c -o ./build/obj/http_handlers.o
+
+./build/obj/https_handlers.o: ./src/workers/https_handlers.c
+	$(CC) $(CFLG) ./src/workers/https_handlers.c -o ./build/obj/https_handlers.o
 
 ./build/obj/pool.o: ./src/workers/pool.c
 	$(CC) $(CFLG) ./src/workers/pool.c -o ./build/obj/pool.o
