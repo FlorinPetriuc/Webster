@@ -23,6 +23,7 @@ directories:
 	mkdir -p ./build
 	mkdir -p ./build/obj
 	mkdir -p ./build/bin
+	cp ./build/items/* ./build/bin
 
 program: $(OFILES)
 	$(CC) $(LDFLAGS) $(OFILES) -o ./build/bin/webster -lpthread -lssl -lcrypto
