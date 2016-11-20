@@ -31,61 +31,15 @@ static const char *get_cmd_parameter(const int argc, char **argv, const char *pa
     return NULL;
 }
 
-int main(int argc, char **argv)
+static int pool_submit_server_socket(const int srvFD, const int epoll_fd,
+                                            enum http_comm_type_t comm_type)
 {
-    int ret;
-    int epoll_fd;
-    int srvFD;
-
     struct handler_prm_t *acc_str;
-
-    const char *working_dir = NULL;
-    const char *logfile = NULL;
-
-    const char *numWorkersC;
-    unsigned int numWorkers = 8;
-
-    const char *portC;
-    unsigned short int port = 80;
-
-    logInit(NULL);
-    logWrite(LOG_TYPE_INFO, "Starting up webster v%d", 1, WEBSTER_VERSION);
-
-    signal(SIGPIPE, SIG_IGN);
-
-    working_dir = get_cmd_parameter(argc, argv, "-wdir=");
-    http_set_working_directory(working_dir);
-
-    logfile = get_cmd_parameter(argc, argv, "-logfile=");
-    logInit(logfile);
-
-    numWorkersC = get_cmd_parameter(argc, argv, "-workers=");
-
-    if(sscanf(numWorkersC, "%u", &numWorkers) != 1)
-    {
-        numWorkers = 8;
-    }
-
-    if(numWorkers <= 0)
-    {
-        numWorkers = 8;
-    }
-
-    portC = get_cmd_parameter(argc, argv, "-port=");
-
-    if(sscanf(portC, "%hu", &port) != 1)
-    {
-        port = 80;
-    }
-
-    epoll_fd = initialize_pool();
 
     if(epoll_fd < 0)
     {
         return 1;
     }
-
-    srvFD = start_server(port);
 
     if(srvFD < 0)
     {
@@ -96,6 +50,8 @@ int main(int argc, char **argv)
     acc_str->sockFD = srvFD;
     acc_str->fileFD = -1;
     acc_str->epoll_fd = epoll_fd;
+
+    acc_str->comm_type = comm_type;
 
     acc_str->buffer_malloced = 0;
     acc_str->buffer = NULL;
@@ -113,11 +69,84 @@ int main(int argc, char **argv)
 
     acc_str->processor = handle_http_accept;
 
-    ret = submit_to_pool(epoll_fd, acc_str);
+    return submit_to_pool(epoll_fd, acc_str);
+}
 
-    if(ret < 0)
+int main(int argc, char **argv)
+{
+    int epoll_fd;
+    int srvFD;
+
+    const char *working_dir = NULL;
+    const char *logfile = NULL;
+
+    const char *numWorkersC;
+    unsigned int numWorkers = 8;
+
+    const char *portC;
+    unsigned short int port = 80;
+    unsigned short int sPort = 443;
+
+    logInit(NULL);
+    logWrite(LOG_TYPE_INFO, "Starting up webster v%d", 1, WEBSTER_VERSION);
+
+    signal(SIGPIPE, SIG_IGN);
+
+    working_dir = get_cmd_parameter(argc, argv, "-wdir=");
+    http_set_working_directory(working_dir);
+
+    logfile = get_cmd_parameter(argc, argv, "-logfile=");
+    logInit(logfile);
+
+    numWorkersC = get_cmd_parameter(argc, argv, "-workers=");
+    if(numWorkersC &&
+       sscanf(numWorkersC, "%u", &numWorkers) != 1)
     {
-        return 1;
+        numWorkers = 8;
+    }
+
+    if(numWorkers <= 0)
+    {
+        numWorkers = 8;
+    }
+
+    portC = get_cmd_parameter(argc, argv, "-port=");
+    if(portC &&
+       sscanf(portC, "%hu", &port) != 1)
+    {
+        port = 80;
+    }
+
+    portC = get_cmd_parameter(argc, argv, "-sPort=");
+    if(portC &&
+       sscanf(portC, "%hu", &sPort) != 1)
+    {
+        sPort = 443;
+    }
+
+    epoll_fd = initialize_pool();
+    srvFD = start_server(port);
+
+    if(port == sPort)
+    {
+        if(pool_submit_server_socket(srvFD, epoll_fd, ENCRYPTED_OR_UNENCRYPTED_HTTP) < 0)
+        {
+            return 1;
+        }
+    }
+    else
+    {
+        if(pool_submit_server_socket(srvFD, epoll_fd, UNENCRYPTED_HTTP) < 0)
+        {
+            return 1;
+        }
+
+        srvFD = start_server(sPort);
+
+        if(pool_submit_server_socket(srvFD, epoll_fd, ENCRYPTED_HTTP) < 0)
+        {
+            return 1;
+        }
     }
 
     logWrite(LOG_TYPE_INFO, "Initializing %u workers", 1, numWorkers);

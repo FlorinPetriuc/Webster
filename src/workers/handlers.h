@@ -17,11 +17,20 @@
 
 typedef int (*processor_t)(void *arg);
 
+enum http_comm_type_t
+{
+    UNENCRYPTED_HTTP,
+    ENCRYPTED_HTTP,
+    ENCRYPTED_OR_UNENCRYPTED_HTTP,
+};
+
 struct handler_prm_t
 {
     int sockFD;
     int fileFD;
     int epoll_fd;
+
+    enum http_comm_type_t comm_type;
 
     unsigned char buffer_malloced;
     unsigned char *buffer;
