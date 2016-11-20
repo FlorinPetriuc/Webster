@@ -59,6 +59,7 @@ static int pool_submit_server_socket(const int srvFD, const int epoll_fd,
     acc_str->buffer = NULL;
     acc_str->buf_offset = 0;
     acc_str->buf_len = 0;
+    acc_str->file_offset = 0;
     acc_str->file_len = 0;
     acc_str->file_header_len = 0;
 

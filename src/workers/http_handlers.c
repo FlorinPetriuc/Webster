@@ -14,12 +14,6 @@
 
 #include "../main.h"
 
-#define HTTP_SERVER_ERROR   "HTTP/1.0 500 Internal Server Error\r\n\r\n"
-#define HTTP_BAD_REQUEST    "HTTP/1.0 400 Bad Request\r\n\r\n"
-#define HTTP_NOT_FOUND      "HTTP/1.0 404 Not Found\r\n\r\n"
-#define HTTP_MAX_HEADER_LEN 2048
-#define HTTP_DEFAULT_PAGE   "index.html"
-
 int handle_http_send_page(void *arg)
 {
     struct handler_prm_t *prm = arg;
@@ -81,12 +75,13 @@ int handle_http_send_page(void *arg)
         }
 
         prm->buf_offset = 0;
+        prm->file_offset = 0;
         prm->file_header_sent = 1;
 
         logWrite(LOG_TYPE_INFO, "File header sent", 0);
     }
 
-    ret = sendfile(prm->sockFD, prm->fileFD, NULL, prm->file_len - prm->buf_offset);
+    ret = sendfile(prm->sockFD, prm->fileFD, NULL, prm->file_len - prm->file_offset);
 
     if(ret < 0)
     {
@@ -102,11 +97,11 @@ int handle_http_send_page(void *arg)
         return 0;
     }
 
-    prm->buf_offset += ret;
+    prm->file_offset += ret;
 
     prm->expiration_date = _utcTime() + 5;
 
-    if(prm->file_len != prm->buf_offset)
+    if(prm->file_len != prm->file_offset)
     {
         return 0;
     }
@@ -125,8 +120,6 @@ int handle_http_send_page(void *arg)
 
     close(prm->fileFD);
     prm->fileFD = -1;
-
-    prm->buf_offset = 0;
 
     free(prm->request->abs_path);
     free(prm->request);
@@ -273,7 +266,7 @@ int handle_http_receive(void *arg)
         return 1;
     }
 
-    readRet = read(prm->sockFD, prm->buffer + prm->buf_offset, prm->buf_len - prm->buf_offset - 1);
+    readRet = recv(prm->sockFD, prm->buffer + prm->buf_offset, prm->buf_len - prm->buf_offset - 1, 0);
 
     if(readRet < 0)
     {
@@ -457,6 +450,7 @@ int handle_http_accept(void *arg)
     cli_prm->buffer = xmalloc(cli_prm->buf_len);
     cli_prm->buf_offset = 0;
     cli_prm->file_len = 0;
+    cli_prm->file_offset = 0;
     cli_prm->file_header_len = 0;
 
     cli_prm->file_header_sent = 0;

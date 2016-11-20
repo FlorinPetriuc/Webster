@@ -38,6 +38,7 @@ struct handler_prm_t
     unsigned char *buffer;
     unsigned int buf_offset;
     unsigned int buf_len;
+    unsigned int file_offset;
     unsigned int file_len;
     unsigned int file_header_len;
 
