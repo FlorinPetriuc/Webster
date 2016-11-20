@@ -28,7 +28,7 @@ The apllication depends on libpthread and libopenssl.
 ## Usage
 
 Setup Webster as a daemon on your system and run using the appropriate wdir and port parameters.
-Optionally you can set a log file to monitor the application and number of workers.
+Optionally you can set a log file to monitor the application and number of workers.<br />
 Default website directory is "."<br />
 Default logfile is stdout<br />
 Default number of workers is 8<br />
