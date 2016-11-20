@@ -14,3 +14,7 @@
 
 #include "../main.h"
 
+int handle_https_accept(void *arg)
+{
+    return 0;
+}

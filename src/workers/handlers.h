@@ -46,6 +46,8 @@ struct handler_prm_t
 
     struct http_request_t *request;
 
+    const char *certificate;
+
     processor_t processor;
 };
 

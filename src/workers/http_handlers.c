@@ -448,6 +448,9 @@ int handle_http_accept(void *arg)
     cli_prm->fileFD = -1;
     cli_prm->epoll_fd = prm->epoll_fd;
 
+    cli_prm->certificate = prm->certificate;
+    cli_prm->comm_type = prm->comm_type;
+
     cli_prm->buffer_malloced = 1;
     cli_prm->buf_len = HTTP_MAX_HEADER_LEN;
     cli_prm->buffer = xmalloc(cli_prm->buf_len);
@@ -462,7 +465,20 @@ int handle_http_accept(void *arg)
 
     cli_prm->request = NULL;
 
-    cli_prm->processor = handle_http_receive;
+    switch(cli_prm->comm_type)
+    {
+        case UNENCRYPTED_HTTP:
+        {
+            cli_prm->processor = handle_http_receive;
+        }
+        break;
+
+        default:
+        {
+            cli_prm->processor = handle_https_accept;
+        }
+        break;
+    }
 
     if(submit_to_pool(cli_prm->epoll_fd, cli_prm))
     {

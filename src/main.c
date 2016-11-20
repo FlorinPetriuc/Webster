@@ -32,7 +32,7 @@ static const char *get_cmd_parameter(const int argc, char **argv, const char *pa
 }
 
 static int pool_submit_server_socket(const int srvFD, const int epoll_fd,
-                                            enum http_comm_type_t comm_type)
+                                            enum http_comm_type_t comm_type, const char *certificate)
 {
     struct handler_prm_t *acc_str;
 
@@ -51,6 +51,7 @@ static int pool_submit_server_socket(const int srvFD, const int epoll_fd,
     acc_str->fileFD = -1;
     acc_str->epoll_fd = epoll_fd;
 
+    acc_str->certificate = certificate;
     acc_str->comm_type = comm_type;
 
     acc_str->buffer_malloced = 0;
@@ -74,16 +75,18 @@ static int pool_submit_server_socket(const int srvFD, const int epoll_fd,
 
 int main(int argc, char **argv)
 {
-    int epoll_fd;
-    int srvFD;
+    int epoll_fd = -1;
+    int srvFD = -1;
 
     const char *working_dir = NULL;
     const char *logfile = NULL;
 
-    const char *numWorkersC;
+    const char *numWorkersC = NULL;
     unsigned int numWorkers = 8;
 
-    const char *portC;
+    const char *certificate = NULL;
+
+    const char *portC = NULL;
     unsigned short int port = 80;
     unsigned short int sPort = 443;
 
@@ -124,26 +127,31 @@ int main(int argc, char **argv)
         sPort = 443;
     }
 
+    certificate = get_cmd_parameter(argc, argv, "-certificate=");
+
     epoll_fd = initialize_pool();
     srvFD = start_server(port);
 
     if(port == sPort)
     {
-        if(pool_submit_server_socket(srvFD, epoll_fd, ENCRYPTED_OR_UNENCRYPTED_HTTP) < 0)
+        if(pool_submit_server_socket(srvFD, epoll_fd,
+                        ENCRYPTED_OR_UNENCRYPTED_HTTP, certificate) < 0)
         {
             return 1;
         }
     }
     else
     {
-        if(pool_submit_server_socket(srvFD, epoll_fd, UNENCRYPTED_HTTP) < 0)
+        if(pool_submit_server_socket(srvFD, epoll_fd,
+                                            UNENCRYPTED_HTTP, NULL) < 0)
         {
             return 1;
         }
 
         srvFD = start_server(sPort);
 
-        if(pool_submit_server_socket(srvFD, epoll_fd, ENCRYPTED_HTTP) < 0)
+        if(pool_submit_server_socket(srvFD, epoll_fd,
+                                            ENCRYPTED_HTTP, certificate) < 0)
         {
             return 1;
         }

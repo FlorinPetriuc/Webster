@@ -12,9 +12,9 @@
  * General Public License for more details.
  */
 
-#ifndef _HTTP_HANDLERS_H_
-#define _HTTP_HANDLERS_H_
+#ifndef _HTTPS_HANDLERS_H_
+#define _HTTPS_HANDLERS_H_
 
-
+int handle_https_accept(void *arg);
 
 #endif
