@@ -42,6 +42,9 @@ struct handler_prm_t
     unsigned int file_len;
     unsigned int file_header_len;
 
+    const char *header;
+    const char *body;
+
     unsigned char file_header_sent;
     unsigned char critical;
     unsigned char has_expiration;

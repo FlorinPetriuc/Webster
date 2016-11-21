@@ -483,8 +483,10 @@ int handle_http_accept(void *arg)
     cli_prm->comm_type = prm->comm_type;
 
     cli_prm->buffer_malloced = 1;
-    cli_prm->buf_len = HTTP_MAX_HEADER_LEN;
+    cli_prm->buf_len = HTTP_MAX_BUFFER_LEN;
     cli_prm->buffer = xmalloc(cli_prm->buf_len);
+    cli_prm->header = NULL;
+    cli_prm->body = NULL;
     cli_prm->buf_offset = 0;
     cli_prm->file_len = 0;
     cli_prm->file_offset = 0;
