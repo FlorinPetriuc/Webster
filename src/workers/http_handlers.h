@@ -17,6 +17,7 @@
 
 int handle_http_receive(void *arg);
 int handle_http_accept(void *arg);
+int handle_http_send_page_header(void *arg);
 int handle_http_send_page(void *arg);
 int handle_http_send_bad_request(void *arg);
 int handle_http_send_not_found(void *arg);

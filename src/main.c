@@ -55,17 +55,18 @@ static int pool_submit_server_socket(const int srvFD, const int epoll_fd,
     acc_str->certificate = certificate;
     acc_str->comm_type = comm_type;
 
-    acc_str->buffer_malloced = 0;
-    acc_str->buffer = NULL;
-    acc_str->header = NULL;
-    acc_str->body = NULL;
+    acc_str->in_buffer = NULL;
+    acc_str->out_buffer = NULL;
     acc_str->buf_offset = 0;
     acc_str->buf_len = 0;
+
+    acc_str->header = NULL;
+    acc_str->body = NULL;
+
     acc_str->file_offset = 0;
     acc_str->file_len = 0;
     acc_str->file_header_len = 0;
 
-    acc_str->file_header_sent = 0;
     acc_str->critical = 1;
     acc_str->has_expiration = 0;
     acc_str->expiration_date = 0;

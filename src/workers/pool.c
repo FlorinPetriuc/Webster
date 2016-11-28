@@ -101,9 +101,14 @@ void remove_from_pool(const int epoll_fd, struct handler_prm_t *prm)
         exit(EXIT_FAILURE);
     }
 
-    if(prm->buffer && prm->buffer_malloced)
+    if(prm->in_buffer)
     {
-        free(prm->buffer);
+        free(prm->in_buffer);
+    }
+
+    if(prm->out_buffer)
+    {
+        free(prm->out_buffer);
     }
 
     if(prm->request)

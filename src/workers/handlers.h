@@ -34,10 +34,11 @@ struct handler_prm_t
 
     enum http_comm_type_t comm_type;
 
-    unsigned char buffer_malloced;
-    unsigned char *buffer;
+    unsigned char *in_buffer;
+    unsigned char *out_buffer;
     unsigned int buf_offset;
     unsigned int buf_len;
+
     unsigned int file_offset;
     unsigned int file_len;
     unsigned int file_header_len;
@@ -45,7 +46,6 @@ struct handler_prm_t
     const char *header;
     const char *body;
 
-    unsigned char file_header_sent;
     unsigned char critical;
     unsigned char has_expiration;
     time_t expiration_date;
