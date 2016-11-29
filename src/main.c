@@ -48,24 +48,28 @@ static int pool_submit_server_socket(const int srvFD, const int epoll_fd,
 
     acc_str = xmalloc(sizeof(struct handler_prm_t));
     acc_str->sockFD = srvFD;
-    acc_str->ssl = NULL;
     acc_str->fileFD = -1;
     acc_str->epoll_fd = epoll_fd;
 
+    acc_str->ssl = NULL;
     acc_str->certificate = certificate;
+
     acc_str->comm_type = comm_type;
 
     acc_str->in_buffer = NULL;
-    acc_str->out_buffer = NULL;
-    acc_str->buf_offset = 0;
-    acc_str->buf_len = 0;
+    acc_str->in_buf_offset = 0;
+    acc_str->in_buf_len = 0;
 
-    acc_str->header = NULL;
-    acc_str->body = NULL;
+    acc_str->out_buffer = NULL;
+    acc_str->out_buf_offset = 0;
+    acc_str->out_buf_len = 0;
 
     acc_str->file_offset = 0;
     acc_str->file_len = 0;
     acc_str->file_header_len = 0;
+
+    acc_str->header = NULL;
+    acc_str->body = NULL;
 
     acc_str->critical = 1;
     acc_str->has_expiration = 0;

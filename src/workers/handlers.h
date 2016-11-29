@@ -32,15 +32,20 @@ struct handler_prm_t
 
     SSL *ssl;
 
+    const char *certificate;
+
     enum http_comm_type_t comm_type;
 
     unsigned char *in_buffer;
-    unsigned char *out_buffer;
-    unsigned int buf_offset;
-    unsigned int buf_len;
+    unsigned int in_buf_offset;
+    unsigned int in_buf_len;
 
-    unsigned int file_offset;
-    unsigned int file_len;
+    unsigned char *out_buffer;
+    unsigned int out_buf_offset;
+    unsigned int out_buf_len;
+
+    unsigned long long file_offset;
+    unsigned long long file_len;
     unsigned int file_header_len;
 
     const char *header;
@@ -51,8 +56,6 @@ struct handler_prm_t
     time_t expiration_date;
 
     struct http_request_t *request;
-
-    const char *certificate;
 
     processor_t processor;
 };

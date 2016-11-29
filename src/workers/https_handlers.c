@@ -44,13 +44,13 @@ int handle_https_send_page_header(void *arg)
 
         prm->file_header_len = sprintf(prm->out_buffer, "HTTP/1.1 200 OK\r\n"
                                                         "Content-type: %s\r\n"
-                                                        "Content-Length: %u\r\n"
+                                                        "Content-Length: %llu\r\n"
                                                         "\r\n", mime_type, prm->file_len);
     }
 
     ERR_clear_error();
 
-    ret = SSL_write(prm->ssl, prm->out_buffer + prm->buf_offset, prm->file_header_len - prm->buf_offset);
+    ret = SSL_write(prm->ssl, prm->out_buffer + prm->out_buf_offset, prm->file_header_len - prm->out_buf_offset);
 
     if(ret <= 0)
     {
@@ -62,15 +62,16 @@ int handle_https_send_page_header(void *arg)
         return 1;
     }
 
-    prm->buf_offset += ret;
+    prm->out_buf_offset += ret;
 
-    if(prm->buf_offset < prm->file_header_len)
+    if(prm->out_buf_offset < prm->file_header_len)
     {
         return 0;
     }
 
-    prm->buf_offset = 0;
-    prm->file_offset = 0;
+    prm->out_buf_offset = 0;
+
+    prm->file_header_len = 0;
 
     prm->processor = handle_https_send_page;
 
@@ -87,13 +88,13 @@ int handle_https_send_page(void *arg)
 
     while(prm->file_offset != prm->file_len)
     {
-        if(prm->buf_len - prm->buf_offset >= prm->file_len - prm->file_offset)
+        if(prm->out_buf_len - prm->out_buf_offset >= prm->file_len - prm->file_offset)
         {
-            rRet = read(prm->fileFD, prm->out_buffer + prm->buf_offset, prm->file_len - prm->file_offset);
+            rRet = read(prm->fileFD, prm->out_buffer + prm->out_buf_offset, prm->file_len - prm->file_offset);
         }
         else
         {
-            rRet = read(prm->fileFD, prm->out_buffer + prm->buf_offset, prm->buf_len - prm->buf_offset);
+            rRet = read(prm->fileFD, prm->out_buffer + prm->out_buf_offset, prm->out_buf_len - prm->out_buf_offset);
         }
 
         if(rRet < 0)
@@ -102,13 +103,13 @@ int handle_https_send_page(void *arg)
             {
                 case EAGAIN:
                 {
-                    if(prm->buf_offset) break;
+                    if(prm->out_buf_offset) break;
                 }
                 return 0;
 
                 case EINTR:
                 {
-                    if(prm->buf_offset) break;
+                    if(prm->out_buf_offset) break;
                 }
                 return 0;
 
@@ -118,17 +119,17 @@ int handle_https_send_page(void *arg)
             rRet = 0;
         }
 
-        if(rRet == 0 && prm->buf_offset == 0)
+        if(rRet == 0 && prm->out_buf_offset == 0)
         {
             return 0;
         }
 
         prm->file_offset += rRet;
-        prm->buf_offset += rRet;
+        prm->out_buf_offset += rRet;
 
         ERR_clear_error();
 
-        ret = SSL_write(prm->ssl, prm->out_buffer, prm->buf_offset);
+        ret = SSL_write(prm->ssl, prm->out_buffer, prm->out_buf_offset);
 
         if(ret <= 0)
         {
@@ -142,21 +143,21 @@ int handle_https_send_page(void *arg)
 
         prm->expiration_date = _utcTime() + 5;
 
-        if(ret > prm->buf_offset)
+        if(ret > prm->out_buf_offset)
         {
             return 1;
         }
 
-        if(prm->buf_offset == ret)
+        if(prm->out_buf_offset == ret)
         {
-            prm->buf_offset = 0;
+            prm->out_buf_offset = 0;
 
             continue;
         }
 
-        prm->buf_offset -= ret;
+        prm->out_buf_offset -= ret;
 
-        memcpy(prm->out_buffer, prm->out_buffer + ret, prm->buf_offset);
+        memcpy(prm->out_buffer, prm->out_buffer + ret, prm->out_buf_offset);
     }
 
     logWrite(LOG_TYPE_INFO, "Request completed", 0);
@@ -174,11 +175,14 @@ int handle_https_send_page(void *arg)
     close(prm->fileFD);
     prm->fileFD = -1;
 
-    prm->buf_offset = 0;
+    prm->out_buf_offset = 0;
 
     free(prm->request->abs_path);
     free(prm->request);
     prm->request = NULL;
+
+    prm->file_len = 0;
+    prm->file_offset = 0;
 
     prm->processor = handle_https_receive;
 
@@ -187,22 +191,24 @@ int handle_https_send_page(void *arg)
 
 int handle_https_send_bad_request(void *arg)
 {
-    const char *bad_request = HTTP_BAD_REQUEST;
-    const int bad_request_len = MACRO_STRLEN(HTTP_BAD_REQUEST);
-
     struct handler_prm_t *prm = arg;
 
     int ret;
     int errRet;
 
-    if(prm->buf_offset == bad_request_len)
+    if(prm->file_header_len == 0)
     {
-        return 2;
+        prm->file_header_len = sprintf(prm->out_buffer,
+                                        "HTTP/%hhu.%hhu 400 Bad Request\r\n"\
+                                        "Content-Length: 0\r\n"\
+                                        "\r\n",
+                                        prm->request->version_major, prm->request->version_minor);
     }
 
     ERR_clear_error();
 
-    ret = SSL_write(prm->ssl, bad_request + prm->buf_offset, bad_request_len - prm->buf_offset);
+    ret = SSL_write(prm->ssl, prm->out_buffer + prm->out_buf_offset,
+                                        prm->file_header_len - prm->out_buf_offset);
 
     if(ret <= 0)
     {
@@ -214,34 +220,52 @@ int handle_https_send_bad_request(void *arg)
         return 1;
     }
 
-    prm->buf_offset += ret;
+    prm->out_buf_offset += ret;
 
-    if(prm->buf_offset == bad_request_len)
+    if(prm->out_buf_offset != prm->file_header_len)
+    {
+        return 0;
+    }
+
+    if(prm->request->version_major < 1)
     {
         return 2;
     }
+
+    if(prm->request->version_major == 1 && prm->request->version_minor == 0)
+    {
+        return 2;
+    }
+
+    prm->out_buf_offset = 0;
+    prm->file_header_len = 0;
+    prm->processor = handle_http_receive;
+
+    prm->expiration_date = _utcTime() + 5;
 
     return 0;
 }
 
 int handle_https_send_not_found(void *arg)
 {
-    const char *bad_request = HTTP_NOT_FOUND;
-    const int bad_request_len = MACRO_STRLEN(HTTP_NOT_FOUND);
-
     struct handler_prm_t *prm = arg;
 
     int ret;
     int errRet;
 
-    if(prm->buf_offset == bad_request_len)
+    if(prm->file_header_len == 0)
     {
-        return 2;
+        prm->file_header_len = sprintf(prm->out_buffer,
+                                        "HTTP/%hhu.%hhu 404 Not Found\r\n"\
+                                        "Content-Length: 0\r\n"\
+                                        "\r\n",
+                                        prm->request->version_major, prm->request->version_minor);
     }
 
     ERR_clear_error();
 
-    ret = SSL_write(prm->ssl, bad_request + prm->buf_offset, bad_request_len - prm->buf_offset);
+    ret = SSL_write(prm->ssl, prm->out_buffer + prm->out_buf_offset,
+                                        prm->file_header_len - prm->out_buf_offset);
 
     if(ret <= 0)
     {
@@ -253,34 +277,52 @@ int handle_https_send_not_found(void *arg)
         return 1;
     }
 
-    prm->buf_offset += ret;
+    prm->out_buf_offset += ret;
 
-    if(prm->buf_offset == bad_request_len)
+    if(prm->out_buf_offset != prm->file_header_len)
+    {
+        return 0;
+    }
+
+    if(prm->request->version_major < 1)
     {
         return 2;
     }
+
+    if(prm->request->version_major == 1 && prm->request->version_minor == 0)
+    {
+        return 2;
+    }
+
+    prm->out_buf_offset = 0;
+    prm->file_header_len = 0;
+    prm->processor = handle_http_receive;
+
+    prm->expiration_date = _utcTime() + 5;
 
     return 0;
 }
 
 int handle_https_send_server_error(void *arg)
 {
-    const char *bad_request = HTTP_SERVER_ERROR;
-    const int bad_request_len = MACRO_STRLEN(HTTP_SERVER_ERROR);
-
     struct handler_prm_t *prm = arg;
 
     int ret;
     int errRet;
 
-    if(prm->buf_offset == bad_request_len)
+    if(prm->file_header_len == 0)
     {
-        return 2;
+        prm->file_header_len = sprintf(prm->out_buffer,
+                                        "HTTP/%hhu.%hhu 500 Internal Server Error\r\n"\
+                                        "Content-Length: 0\r\n"\
+                                        "\r\n",
+                                        prm->request->version_major, prm->request->version_minor);
     }
 
     ERR_clear_error();
 
-    ret = SSL_write(prm->ssl, bad_request + prm->buf_offset, bad_request_len - prm->buf_offset);
+    ret = SSL_write(prm->ssl, prm->out_buffer + prm->out_buf_offset,
+                                        prm->file_header_len - prm->out_buf_offset);
 
     if(ret <= 0)
     {
@@ -292,12 +334,28 @@ int handle_https_send_server_error(void *arg)
         return 1;
     }
 
-    prm->buf_offset += ret;
+    prm->out_buf_offset += ret;
 
-    if(prm->buf_offset == bad_request_len)
+    if(prm->out_buf_offset != prm->file_header_len)
+    {
+        return 0;
+    }
+
+    if(prm->request->version_major < 1)
     {
         return 2;
     }
+
+    if(prm->request->version_major == 1 && prm->request->version_minor == 0)
+    {
+        return 2;
+    }
+
+    prm->out_buf_offset = 0;
+    prm->file_header_len = 0;
+    prm->processor = handle_http_receive;
+
+    prm->expiration_date = _utcTime() + 5;
 
     return 0;
 }
@@ -314,14 +372,14 @@ int handle_https_receive(void *arg)
     int len;
     int errRet;
 
-    if(prm->buf_offset == prm->buf_len - 1)
+    if(prm->in_buf_offset == prm->in_buf_len - 1)
     {
         return 1;
     }
 
     ERR_clear_error();
 
-    readRet = SSL_read(prm->ssl, prm->in_buffer + prm->buf_offset, prm->buf_len - prm->buf_offset - 1);
+    readRet = SSL_read(prm->ssl, prm->in_buffer + prm->in_buf_offset, prm->in_buf_len - prm->in_buf_offset - 1);
 
     if(readRet <= 0)
     {
@@ -333,14 +391,14 @@ int handle_https_receive(void *arg)
         return 1;
     }
 
-    prm->buf_offset += readRet;
-    prm->in_buffer[prm->buf_offset] = '\0';
+    prm->in_buf_offset += readRet;
+    prm->in_buffer[prm->in_buf_offset] = '\0';
 
     header_end = strstr(prm->in_buffer, "\r\n\r\n");
 
     if(header_end == NULL)
     {
-        if(prm->buf_offset < prm->buf_len - 1)
+        if(prm->in_buf_offset < prm->in_buf_len - 1)
         {
             return 0;
         }
@@ -349,7 +407,7 @@ int handle_https_receive(void *arg)
 
         prm->expiration_date = _utcTime() + 5;
 
-        prm->buf_offset = 0;
+        prm->in_buf_offset = 0;
 
         prm->processor = handle_https_send_bad_request;
 
@@ -363,9 +421,10 @@ int handle_https_receive(void *arg)
 
     prm->expiration_date = _utcTime() + 5;
 
-    prm->buf_offset = 0;
+    prm->in_buf_offset = 0;
 
-    prm->request = parse_http_header(prm->in_buffer);
+    prm->header = prm->in_buffer;
+    prm->request = parse_http_header(prm->header);
     if(prm->request == NULL)
     {
         prm->processor = handle_https_send_bad_request;
@@ -395,7 +454,6 @@ int handle_https_receive(void *arg)
     if(!(S_ISDIR(buf.st_mode)))
     {
         prm->file_len = buf.st_size;
-        prm->file_header_len = 0;
 
         prm->processor = handle_https_send_page_header;
 

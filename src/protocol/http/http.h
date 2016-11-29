@@ -15,9 +15,6 @@
 #ifndef _HTTP_H_
 #define _HTTP_H_
 
-#define HTTP_SERVER_ERROR   "HTTP/1.0 500 Internal Server Error\r\n\r\n"
-#define HTTP_BAD_REQUEST    "HTTP/1.0 400 Bad Request\r\n\r\n"
-#define HTTP_NOT_FOUND      "HTTP/1.0 404 Not Found\r\n\r\n"
 #define HTTP_MAX_BUFFER_LEN 4096
 #define HTTP_DEFAULT_PAGE   "index.html"
 

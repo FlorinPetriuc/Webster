@@ -43,11 +43,11 @@ int handle_http_send_page_header(void *arg)
 
         prm->file_header_len = sprintf(prm->out_buffer, "HTTP/1.1 200 OK\r\n"
                                                         "Content-type: %s\r\n"
-                                                        "Content-Length: %u\r\n"
+                                                        "Content-Length: %llu\r\n"
                                                         "\r\n", mime_type, prm->file_len);
     }
 
-    ret = send(prm->sockFD, prm->out_buffer + prm->buf_offset, prm->file_header_len - prm->buf_offset, 0);
+    ret = send(prm->sockFD, prm->out_buffer + prm->out_buf_offset, prm->file_header_len - prm->out_buf_offset, 0);
 
     if(ret < 0)
     {
@@ -63,15 +63,16 @@ int handle_http_send_page_header(void *arg)
         return 0;
     }
 
-    prm->buf_offset += ret;
+    prm->out_buf_offset += ret;
 
-    if(prm->buf_offset < prm->file_header_len)
+    if(prm->out_buf_offset < prm->file_header_len)
     {
         return 0;
     }
 
-    prm->buf_offset = 0;
-    prm->file_offset = 0;
+    prm->out_buf_offset = 0;
+
+    prm->file_header_len = 0;
 
     prm->processor = handle_http_send_page;
 
@@ -128,26 +129,31 @@ int handle_http_send_page(void *arg)
     free(prm->request);
     prm->request = NULL;
 
+    prm->file_len = 0;
+    prm->file_offset = 0;
+
     prm->processor = handle_http_receive;
 
-    return prm->processor(arg);
+    return 0;
 }
 
 int handle_http_send_bad_request(void *arg)
 {
-    const char *bad_request = HTTP_BAD_REQUEST;
-    const int bad_request_len = MACRO_STRLEN(HTTP_BAD_REQUEST);
-
     struct handler_prm_t *prm = arg;
 
     int ret;
 
-    if(prm->buf_offset == bad_request_len)
+    if(prm->file_header_len == 0)
     {
-        return 2;
+        prm->file_header_len = sprintf(prm->out_buffer,
+                                        "HTTP/%hhu.%hhu 400 Bad Request\r\n"\
+                                        "Content-Length: 0\r\n"\
+                                        "\r\n",
+                                        prm->request->version_major, prm->request->version_minor);
     }
 
-    ret = send(prm->sockFD, bad_request + prm->buf_offset, bad_request_len - prm->buf_offset, 0);
+    ret = send(prm->sockFD, prm->out_buffer + prm->out_buf_offset,
+                            prm->file_header_len - prm->out_buf_offset, 0);
 
     if(ret < 0)
     {
@@ -163,31 +169,49 @@ int handle_http_send_bad_request(void *arg)
         return 0;
     }
 
-    prm->buf_offset += ret;
+    prm->out_buf_offset += ret;
 
-    if(prm->buf_offset == bad_request_len)
+    if(prm->out_buf_offset != prm->file_header_len)
+    {
+        return 0;
+    }
+
+    if(prm->request->version_major < 1)
     {
         return 2;
     }
+
+    if(prm->request->version_major == 1 && prm->request->version_minor == 0)
+    {
+        return 2;
+    }
+
+    prm->out_buf_offset = 0;
+    prm->file_header_len = 0;
+    prm->processor = handle_http_receive;
+
+    prm->expiration_date = _utcTime() + 5;
 
     return 0;
 }
 
 int handle_http_send_not_found(void *arg)
 {
-    const char *bad_request = HTTP_NOT_FOUND;
-    const int bad_request_len = MACRO_STRLEN(HTTP_NOT_FOUND);
-
     struct handler_prm_t *prm = arg;
 
     int ret;
 
-    if(prm->buf_offset == bad_request_len)
+    if(prm->file_header_len == 0)
     {
-        return 2;
+        prm->file_header_len = sprintf(prm->out_buffer,
+                                        "HTTP/%hhu.%hhu 404 Not Found\r\n"\
+                                        "Content-Length: 0\r\n"\
+                                        "\r\n",
+                                        prm->request->version_major, prm->request->version_minor);
     }
 
-    ret = send(prm->sockFD, bad_request + prm->buf_offset, bad_request_len - prm->buf_offset, 0);
+    ret = send(prm->sockFD, prm->out_buffer + prm->out_buf_offset,
+                            prm->file_header_len - prm->out_buf_offset, 0);
 
     if(ret < 0)
     {
@@ -203,31 +227,49 @@ int handle_http_send_not_found(void *arg)
         return 0;
     }
 
-    prm->buf_offset += ret;
+    prm->out_buf_offset += ret;
 
-    if(prm->buf_offset == bad_request_len)
+    if(prm->out_buf_offset != prm->file_header_len)
+    {
+        return 0;
+    }
+
+    if(prm->request->version_major < 1)
     {
         return 2;
     }
+
+    if(prm->request->version_major == 1 && prm->request->version_minor == 0)
+    {
+        return 2;
+    }
+
+    prm->out_buf_offset = 0;
+    prm->file_header_len = 0;
+    prm->processor = handle_http_receive;
+
+    prm->expiration_date = _utcTime() + 5;
 
     return 0;
 }
 
 int handle_http_send_server_error(void *arg)
 {
-    const char *bad_request = HTTP_SERVER_ERROR;
-    const int bad_request_len = MACRO_STRLEN(HTTP_SERVER_ERROR);
-
     struct handler_prm_t *prm = arg;
 
     int ret;
 
-    if(prm->buf_offset == bad_request_len)
+    if(prm->file_header_len == 0)
     {
-        return 2;
+        prm->file_header_len = sprintf(prm->out_buffer,
+                                        "HTTP/%hhu.%hhu 500 Internal Server Error\r\n"\
+                                        "Content-Length: 0\r\n"\
+                                        "\r\n",
+                                        prm->request->version_major, prm->request->version_minor);
     }
 
-    ret = send(prm->sockFD, bad_request + prm->buf_offset, bad_request_len - prm->buf_offset, 0);
+    ret = send(prm->sockFD, prm->out_buffer + prm->out_buf_offset,
+                            prm->file_header_len - prm->out_buf_offset, 0);
 
     if(ret < 0)
     {
@@ -243,12 +285,28 @@ int handle_http_send_server_error(void *arg)
         return 0;
     }
 
-    prm->buf_offset += ret;
+    prm->out_buf_offset += ret;
 
-    if(prm->buf_offset == bad_request_len)
+    if(prm->out_buf_offset != prm->file_header_len)
+    {
+        return 0;
+    }
+
+    if(prm->request->version_major < 1)
     {
         return 2;
     }
+
+    if(prm->request->version_major == 1 && prm->request->version_minor == 0)
+    {
+        return 2;
+    }
+
+    prm->out_buf_offset = 0;
+    prm->file_header_len = 0;
+    prm->processor = handle_http_receive;
+
+    prm->expiration_date = _utcTime() + 5;
 
     return 0;
 }
@@ -264,12 +322,12 @@ int handle_http_receive(void *arg)
     int readRet;
     int len;
 
-    if(prm->buf_offset == prm->buf_len - 1)
+    if(prm->in_buf_offset >= prm->in_buf_len - 1)
     {
         return 1;
     }
 
-    readRet = recv(prm->sockFD, prm->in_buffer + prm->buf_offset, prm->buf_len - prm->buf_offset - 1, 0);
+    readRet = recv(prm->sockFD, prm->in_buffer + prm->in_buf_offset, prm->in_buf_len - prm->in_buf_offset - 1, 0);
 
     if(readRet < 0)
     {
@@ -285,14 +343,14 @@ int handle_http_receive(void *arg)
         return 0;
     }
 
-    prm->buf_offset += readRet;
-    prm->in_buffer[prm->buf_offset] = '\0';
+    prm->in_buf_offset += readRet;
+    prm->in_buffer[prm->in_buf_offset] = '\0';
 
     header_end = strstr(prm->in_buffer, "\r\n\r\n");
 
     if(header_end == NULL)
     {
-        if(prm->buf_offset < prm->buf_len - 1)
+        if(prm->in_buf_offset < prm->in_buf_len - 1)
         {
             return 0;
         }
@@ -301,7 +359,7 @@ int handle_http_receive(void *arg)
 
         prm->expiration_date = _utcTime() + 5;
 
-        prm->buf_offset = 0;
+        prm->in_buf_offset = 0;
 
         prm->processor = handle_http_send_bad_request;
 
@@ -315,9 +373,10 @@ int handle_http_receive(void *arg)
 
     prm->expiration_date = _utcTime() + 5;
 
-    prm->buf_offset = 0;
+    prm->in_buf_offset = 0;
 
-    prm->request = parse_http_header(prm->in_buffer);
+    prm->header = prm->in_buffer;
+    prm->request = parse_http_header(prm->header);
     if(prm->request == NULL)
     {
         prm->processor = handle_http_send_bad_request;
@@ -347,7 +406,6 @@ int handle_http_receive(void *arg)
     if(!(S_ISDIR(buf.st_mode)))
     {
         prm->file_len = buf.st_size;
-        prm->file_header_len = 0;
 
         prm->processor = handle_http_send_page_header;
 
@@ -484,10 +542,12 @@ int handle_http_accept(void *arg)
     cli_prm->certificate = prm->certificate;
     cli_prm->comm_type = prm->comm_type;
 
-    cli_prm->buf_len = HTTP_MAX_BUFFER_LEN;
-    cli_prm->in_buffer = xmalloc(cli_prm->buf_len);
-    cli_prm->out_buffer = xmalloc(cli_prm->buf_len);
-    cli_prm->buf_offset = 0;
+    cli_prm->in_buf_len = HTTP_MAX_BUFFER_LEN;
+    cli_prm->out_buf_len = HTTP_MAX_BUFFER_LEN;
+    cli_prm->in_buffer = xmalloc(cli_prm->in_buf_len);
+    cli_prm->out_buffer = xmalloc(cli_prm->out_buf_len);
+    cli_prm->in_buf_offset = 0;
+    cli_prm->out_buf_offset = 0;
 
     cli_prm->header = NULL;
     cli_prm->body = NULL;
