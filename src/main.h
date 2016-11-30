@@ -41,10 +41,13 @@
 #include "misc/misc.h"
 #include "security/ssl.h"
 #include "protocol/http/http.h"
+#include "protocol/http/http2.h"
 #include "log/log.h"
 #include "workers/handlers.h"
 #include "workers/http_handlers.h"
 #include "workers/https_handlers.h"
+#include "workers/http2_handlers.h"
+#include "workers/https2_handlers.h"
 #include "workers/pool.h"
 
 #endif

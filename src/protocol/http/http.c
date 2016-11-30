@@ -182,6 +182,50 @@ static char *http_resolve_path_and_version(const char *header, unsigned char *ve
     return ret;
 }
 
+static enum http_request_type_t http_resolve_method(const char *header)
+{
+    if(string_starts_with(header, "GET ") == 0)
+    {
+        return HTTP_GET;
+    }
+    else if(string_starts_with(header, "PRI ") == 0)
+    {
+        return HTTP2_PRISM;
+    }
+    else
+    {
+        return HTTP_UNSUPPORTED_METHOD;
+    }
+}
+
+static unsigned int http_resolve_content_len(const char *header)
+{
+    unsigned int ret = 0;
+
+    const char *content_len_header;
+
+    content_len_header = strstr(header, "Content-Length: ");
+
+    if(content_len_header == NULL)
+    {
+        if(string_starts_with(header, "PRI ") == 0)
+        {
+            return 6;
+        }
+
+        return 0;
+    }
+
+    content_len_header += MACRO_STRLEN("Content-Length: ");
+
+    if(sscanf(content_len_header, "%u", &ret) != 1)
+    {
+        return 0;
+    }
+
+    return ret;
+}
+
 struct http_request_t *parse_http_header(const char *header)
 {
     struct http_request_t *ret;
@@ -191,12 +235,20 @@ struct http_request_t *parse_http_header(const char *header)
     unsigned char version_major = 0;
     unsigned char version_minor = 0;
 
-    if(string_starts_with(header, "GET "))
+    unsigned int content_length = 0;
+
+    enum http_request_type_t req_type;
+
+    req_type = http_resolve_method(header);
+
+    if(req_type == HTTP_UNSUPPORTED_METHOD)
     {
-        logWrite(LOG_TYPE_ERROR, "Only get requests are supported in version %u", 1, WEBSTER_VERSION);
+        logWrite(LOG_TYPE_ERROR, "Unsupported request", 0);
 
         return NULL;
     }
+
+    content_length = http_resolve_content_len(header);
 
     path = http_resolve_path_and_version(header, &version_major, &version_minor);
 
@@ -208,13 +260,152 @@ struct http_request_t *parse_http_header(const char *header)
     }
 
     ret = xmalloc(sizeof(struct http_request_t));
-    ret->req_type = HTTP_GET;
+    ret->req_type = req_type;
+
     ret->abs_path = path;
+
+    ret->content_length = content_length;
+
     ret->version_major = version_major;
     ret->version_minor = version_minor;
 
-    logWrite(LOG_TYPE_INFO, "Header resolved to path %s, version: %hhu.%hhu", 3,
-                                                path, version_major, version_minor);
+    logWrite(LOG_TYPE_INFO, "Header resolved to req:%d path %s, version: %hhu.%hhu", 4,
+                                            req_type, path, version_major, version_minor);
 
     return ret;
+}
+
+int process_http_get_request(struct handler_prm_t *prm, const unsigned char encrypted)
+{
+    int len;
+
+    struct stat buf;
+
+    prm->fileFD = open(prm->request->abs_path, O_RDONLY);
+
+    if(prm->fileFD < 0)
+    {
+        if(encrypted)
+        {
+            prm->processor = handle_https_send_not_found;
+        }
+        else
+        {
+            prm->processor = handle_http_send_not_found;
+        }
+
+        return prm->processor(prm);
+    }
+
+    if(fstat(prm->fileFD, &buf) != 0)
+    {
+        close(prm->fileFD);
+        prm->fileFD = -1;
+
+        if(encrypted)
+        {
+            prm->processor = handle_https_send_server_error;
+        }
+        else
+        {
+            prm->processor = handle_http_send_server_error;
+        }
+
+        return prm->processor(prm);
+    }
+
+    if(!(S_ISDIR(buf.st_mode)))
+    {
+        prm->file_len = buf.st_size;
+
+        if(encrypted)
+        {
+            prm->processor = handle_https_send_page_headers;
+        }
+        else
+        {
+            prm->processor = handle_http_send_page_headers;
+        }
+
+        return prm->processor(prm);
+    }
+
+    close(prm->fileFD);
+
+    len = strlen(prm->request->abs_path);
+
+    if(prm->request->abs_path[len - 1] == '/')
+    {
+        prm->request->abs_path = realloc(prm->request->abs_path, len + sizeof(HTTP_DEFAULT_PAGE));
+        memcpy(prm->request->abs_path + len, HTTP_DEFAULT_PAGE, sizeof(HTTP_DEFAULT_PAGE));
+    }
+    else
+    {
+        prm->request->abs_path = realloc(prm->request->abs_path, len + sizeof(HTTP_DEFAULT_PAGE) + 1);
+        sprintf(prm->request->abs_path + len, "/%s", HTTP_DEFAULT_PAGE);
+    }
+
+    prm->fileFD = open(prm->request->abs_path, O_RDONLY);
+
+    if(prm->fileFD < 0)
+    {
+        if(encrypted)
+        {
+            prm->processor = handle_https_send_not_found;
+        }
+        else
+        {
+            prm->processor = handle_http_send_not_found;
+        }
+
+        return prm->processor(prm);
+    }
+
+    if(fstat(prm->fileFD, &buf) != 0)
+    {
+        close(prm->fileFD);
+        prm->fileFD = -1;
+
+        if(encrypted)
+        {
+            prm->processor = handle_https_send_server_error;
+        }
+        else
+        {
+            prm->processor = handle_http_send_server_error;
+        }
+
+        return prm->processor(prm);
+    }
+
+    if(S_ISDIR(buf.st_mode))
+    {
+        close(prm->fileFD);
+        prm->fileFD = -1;
+
+        if(encrypted)
+        {
+            prm->processor = handle_https_send_not_found;
+        }
+        else
+        {
+            prm->processor = handle_http_send_not_found;
+        }
+
+        return prm->processor(prm);
+    }
+
+    prm->file_len = buf.st_size;
+    prm->file_header_len = 0;
+
+    if(encrypted)
+    {
+        prm->processor = handle_https_send_page_headers;
+    }
+    else
+    {
+        prm->processor = handle_http_send_page_headers;
+    }
+
+    return prm->processor(prm);
 }

@@ -93,6 +93,11 @@ void remove_from_pool(const int epoll_fd, struct handler_prm_t *prm)
     {
         close(prm->fileFD);
     }
+
+    if(prm->client_h2settings)
+    {
+        free(prm->client_h2settings);
+    }
     
     if(prm->critical)
     {

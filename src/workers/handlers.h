@@ -56,6 +56,8 @@ struct handler_prm_t
     time_t expiration_date;
 
     struct http_request_t *request;
+    struct http2_settings *client_h2settings;
+    const struct http2_settings *server_h2settings;
 
     processor_t processor;
 };

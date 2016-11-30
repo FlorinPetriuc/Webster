@@ -15,7 +15,7 @@
 #ifndef _HTTPS_HANDLERS_H_
 #define _HTTPS_HANDLERS_H_
 
-int handle_https_send_page_header(void *arg);
+int handle_https_send_page_headers(void *arg);
 int handle_https_send_page(void *arg);
 int handle_https_send_bad_request(void *arg);
 int handle_https_send_not_found(void *arg);

@@ -21,7 +21,8 @@
 enum http_request_type_t
 {
     HTTP_GET,
-    HTTP_POST
+    HTTP2_PRISM,
+    HTTP_UNSUPPORTED_METHOD
 };
 
 struct http_request_t
@@ -30,11 +31,16 @@ struct http_request_t
 
     char *abs_path;
 
+    unsigned int content_length;
+
     unsigned version_major;
     unsigned version_minor;
 };
 
+struct handler_prm_t;
+
 struct http_request_t *parse_http_header(const char *header);
 void http_set_working_directory(const char *path);
+int process_http_get_request(struct handler_prm_t *prm, const unsigned char encrypted);
 
 #endif

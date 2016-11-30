@@ -14,7 +14,7 @@
 
 #include "../main.h"
 
-int handle_http_send_page_header(void *arg)
+int handle_http_send_page_headers(void *arg)
 {
     struct handler_prm_t *prm = arg;
 
@@ -317,10 +317,7 @@ int handle_http_receive(void *arg)
 
     char *header_end;
 
-    struct stat buf;
-
     int readRet;
-    int len;
 
     if(prm->in_buf_offset >= prm->in_buf_len - 1)
     {
@@ -366,102 +363,58 @@ int handle_http_receive(void *arg)
         return prm->processor(arg);
     }
 
-    header_end += MACRO_STRLEN("\r\n\r\n");
+    header_end += MACRO_STRLEN("\r\n\r\n") - 1;
     header_end[0] = '\0';
 
-    logWrite(LOG_TYPE_INFO, "Got request header: %s", 1, prm->in_buffer);
-
-    prm->expiration_date = _utcTime() + 5;
-
-    prm->in_buf_offset = 0;
-
     prm->header = prm->in_buffer;
+
     prm->request = parse_http_header(prm->header);
     if(prm->request == NULL)
     {
+        prm->expiration_date = _utcTime() + 5;
+
+        prm->in_buf_offset = 0;
+
         prm->processor = handle_http_send_bad_request;
 
         return prm->processor(arg);
     }
 
-    prm->fileFD = open(prm->request->abs_path, O_RDONLY);
-
-    if(prm->fileFD < 0)
+    if(prm->request->content_length == 0)
     {
-        prm->processor = handle_http_send_not_found;
-
-        return prm->processor(arg);
-    }
-
-    if(fstat(prm->fileFD, &buf) != 0)
-    {
-        close(prm->fileFD);
-        prm->fileFD = -1;
-
-        prm->processor = handle_http_send_server_error;
-
-        return prm->processor(arg);
-    }
-
-    if(!(S_ISDIR(buf.st_mode)))
-    {
-        prm->file_len = buf.st_size;
-
-        prm->processor = handle_http_send_page_header;
-
-        return prm->processor(arg);
-    }
-
-    close(prm->fileFD);
-
-    len = strlen(prm->request->abs_path);
-
-    if(prm->request->abs_path[len - 1] == '/')
-    {
-        prm->request->abs_path = realloc(prm->request->abs_path, len + sizeof(HTTP_DEFAULT_PAGE));
-        memcpy(prm->request->abs_path + len, HTTP_DEFAULT_PAGE, sizeof(HTTP_DEFAULT_PAGE));
+        prm->body = header_end;
     }
     else
     {
-        prm->request->abs_path = realloc(prm->request->abs_path, len + sizeof(HTTP_DEFAULT_PAGE) + 1);
-        sprintf(prm->request->abs_path + len, "/%s", HTTP_DEFAULT_PAGE);
+        prm->body = header_end + 1;
+
+        if(strlen(prm->body) < prm->request->content_length)
+        {
+            header_end[0] = '\n';
+
+            return 0;
+        }
     }
 
-    prm->fileFD = open(prm->request->abs_path, O_RDONLY);
+    prm->in_buf_offset = 0;
 
-    if(prm->fileFD < 0)
+    prm->expiration_date = _utcTime() + 5;
+
+    logWrite(LOG_TYPE_INFO, "Got request header: %s; body: %s", 2, prm->header, prm->body);
+
+    switch(prm->request->req_type)
     {
-        prm->processor = handle_http_send_not_found;
+        case HTTP_GET: return process_http_get_request(prm, 0);
 
-        return prm->processor(arg);
+        case HTTP2_PRISM:
+        {
+            prm->server_h2settings = http2_server_settings();
+            prm->processor = handle_http2_send_settings;
+        }
+        return prm->processor(prm);
+
+        default: return 1;
     }
-
-    if(fstat(prm->fileFD, &buf) != 0)
-    {
-        close(prm->fileFD);
-        prm->fileFD = -1;
-
-        prm->processor = handle_http_send_server_error;
-
-        return prm->processor(arg);
-    }
-
-    if(S_ISDIR(buf.st_mode))
-    {
-        close(prm->fileFD);
-        prm->fileFD = -1;
-
-        prm->processor = handle_http_send_not_found;
-
-        return prm->processor(arg);
-    }
-
-    prm->file_len = buf.st_size;
-    prm->file_header_len = 0;
-
-    prm->processor = handle_http_send_page_header;
-
-    return prm->processor(arg);
 }
 
 int handle_http_or_https_check(void *arg)
@@ -561,6 +514,8 @@ int handle_http_accept(void *arg)
     cli_prm->expiration_date = _utcTime() + 5;
 
     cli_prm->request = NULL;
+    cli_prm->client_h2settings = NULL;
+    cli_prm->server_h2settings = NULL;
 
     switch(cli_prm->comm_type)
     {

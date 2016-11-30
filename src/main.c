@@ -76,6 +76,8 @@ static int pool_submit_server_socket(const int srvFD, const int epoll_fd,
     acc_str->expiration_date = 0;
 
     acc_str->request = NULL;
+    acc_str->client_h2settings = NULL;
+    acc_str->server_h2settings = NULL;
 
     acc_str->processor = handle_http_accept;
 
