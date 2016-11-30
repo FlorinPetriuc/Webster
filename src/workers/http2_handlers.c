@@ -14,6 +14,11 @@
 
 #include "../main.h"
 
+int handle_http2_send_page(void *arg)
+{
+    return 0;
+}
+
 int handle_http2_receive(void *arg)
 {
     struct handler_prm_t *prm = arg;

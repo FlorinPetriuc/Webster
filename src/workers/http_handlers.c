@@ -145,7 +145,14 @@ int handle_http_send_page_headers(void *arg)
 
     prm->file_header_len = 0;
 
-    prm->processor = handle_http_send_page;
+    if(prm->request->version_major == 2)
+    {
+        prm->processor = handle_http2_send_page;
+    }
+    else
+    {
+        prm->processor = handle_http_send_page;
+    }
 
     return prm->processor(arg);
 }

@@ -17,5 +17,6 @@
 
 int handle_http2_receive(void *arg);
 int handle_http2_send_settings(void *arg);
+int handle_http2_send_page(void *arg);
 
 #endif
