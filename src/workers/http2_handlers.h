@@ -15,6 +15,7 @@
 #ifndef _HTTP2_HANDLERS_H_
 #define _HTTP2_HANDLERS_H_
 
+int handle_http2_receive(void *arg);
 int handle_http2_send_settings(void *arg);
 
 #endif
