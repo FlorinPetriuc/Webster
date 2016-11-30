@@ -210,14 +210,7 @@ int handle_http_send_page(void *arg)
     prm->file_len = 0;
     prm->file_offset = 0;
 
-    if(prm->request->version_major == 2)
-    {
-        prm->processor = handle_http2_receive;
-    }
-    else
-    {
-        prm->processor = handle_http_receive;
-    }
+    prm->processor = handle_http_receive;
 
     return 0;
 }
