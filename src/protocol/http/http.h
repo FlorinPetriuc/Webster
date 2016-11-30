@@ -35,6 +35,10 @@ struct http_request_t
 
     unsigned version_major;
     unsigned version_minor;
+
+    uint32_t stream_id;
+
+    unsigned char last_header;
 };
 
 struct handler_prm_t;

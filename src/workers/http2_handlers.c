@@ -16,7 +16,126 @@
 
 int handle_http2_receive(void *arg)
 {
-    return 1;
+    struct handler_prm_t *prm = arg;
+
+    int readRet;
+    int i;
+
+    uint32_t len;
+
+    enum http_request_type_t req_type;
+
+    readRet = recv(prm->sockFD, prm->in_buffer + prm->in_buf_offset, prm->in_buf_len - prm->in_buf_offset, 0);
+
+    if(readRet < 0)
+    {
+        if(errno == EAGAIN) return 0;
+        if(errno == EINTR) return 0;
+        if(errno == EWOULDBLOCK) return 0;
+
+        return 1;
+    }
+
+    if(readRet == 0)
+    {
+        return 0;
+    }
+
+    prm->in_buf_offset += readRet;
+
+again:
+
+    if(prm->in_buf_offset < 3)
+    {
+        return 0;
+    }
+
+    len = ((prm->in_buffer[0] << 16) | (prm->in_buffer[1] << 8) | (prm->in_buffer[2])) + 9;
+
+    if(prm->in_buf_offset < len)
+    {
+        return 0;
+    }
+
+    logWrite(LOG_TYPE_INFO, "Got http2 frame of len %u from %u total bytes read",
+                                                            2, len, prm->in_buf_offset);
+
+    switch(prm->in_buffer[3])
+    {
+        case HTTP2_DATA:
+        {
+        }
+        break;
+
+        case HTTP2_HEADERS:
+        {
+            prm->header = prm->in_buffer;
+            prm->request = process_http2_header(prm->header, prm->request);
+
+            if(prm->request->last_header == 0)
+            {
+                return 0;
+            }
+
+            switch(prm->request->req_type)
+            {
+                case HTTP_GET: return process_http_get_request(prm, 0);
+                default: return 1;
+            }
+        }
+        break;
+
+        case HTTP2_PRIORITY:
+        {
+        }
+        break;
+
+        case HTTP2_RST_STREAM:
+        {
+        }
+        break;
+
+        case HTTP2_SETTINGS:
+        {
+            prm->header = prm->in_buffer;
+            prm->client_h2settings = process_http2_settings_request(prm->header, prm->client_h2settings);
+
+            if(prm->client_h2settings == NULL)
+            {
+                return 1;
+            }
+        }
+        break;
+
+        case HTTP2_PUSH_PROMISE:
+        {
+        }
+        break;
+
+        case HTTP2_PING:
+        {
+        }
+        break;
+
+        case HTTP2_GO_AWAY:
+        {
+        }
+        break;
+
+        case HTTP2_WINDOW_UPDATE:
+        {
+        }
+        break;
+
+        default: break;
+    }
+
+    memcpy(prm->in_buffer, prm->in_buffer + len, prm->in_buf_offset - len);
+    prm->in_buf_offset -= len;
+
+    prm->expiration_date = _utcTime() + 5;
+
+    goto again;
 }
 
 int handle_http2_send_settings(void *arg)

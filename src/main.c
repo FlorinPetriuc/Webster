@@ -115,6 +115,7 @@ int main(int argc, char **argv)
 
     working_dir = get_cmd_parameter(argc, argv, "-wdir=");
     http_set_working_directory(working_dir);
+    http2_set_working_directory(working_dir);
 
     logfile = get_cmd_parameter(argc, argv, "-logfile=");
     logInit(logfile);

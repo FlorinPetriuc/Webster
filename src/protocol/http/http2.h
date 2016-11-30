@@ -42,6 +42,12 @@ struct http2_settings
     uint32_t MAX_HEADER_LIST_SIZE;
 };
 
+void http2_set_working_directory(const char *path);
+
 const struct http2_settings *http2_server_settings();
+struct http2_settings *process_http2_settings_request(const unsigned char *payload,
+                                                    struct http2_settings *old_settings);
+struct http_request_t *process_http2_header(const unsigned char *payload,
+                                            struct http_request_t *old_req);
 
 #endif

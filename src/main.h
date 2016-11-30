@@ -42,6 +42,7 @@
 #include "security/ssl.h"
 #include "protocol/http/http.h"
 #include "protocol/http/http2.h"
+#include "protocol/http/hpack.h"
 #include "log/log.h"
 #include "workers/handlers.h"
 #include "workers/http_handlers.h"

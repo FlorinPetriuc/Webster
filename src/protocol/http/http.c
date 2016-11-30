@@ -269,6 +269,9 @@ struct http_request_t *parse_http_header(const char *header)
     ret->version_major = version_major;
     ret->version_minor = version_minor;
 
+    ret->stream_id = 0;
+    ret->last_header = 0;
+
     logWrite(LOG_TYPE_INFO, "Header resolved to req:%d path %s, version: %hhu.%hhu", 4,
                                             req_type, path, version_major, version_minor);
 

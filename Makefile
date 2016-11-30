@@ -13,7 +13,7 @@
 #
 
 CFLG=$(CFLAGS) -c -Werror
-BFILES=./build/obj/ssl.o ./build/obj/log.o ./build/obj/misc.o ./build/obj/http.o ./build/obj/http2.o ./build/obj/server.o ./build/obj/http_handlers.o ./build/obj/https_handlers.o ./build/obj/http2_handlers.o ./build/obj/https2_handlers.o ./build/obj/pool.o
+BFILES=./build/obj/ssl.o ./build/obj/log.o ./build/obj/misc.o ./build/obj/http.o ./build/obj/hpack.o ./build/obj/http2.o ./build/obj/server.o ./build/obj/http_handlers.o ./build/obj/https_handlers.o ./build/obj/http2_handlers.o ./build/obj/https2_handlers.o ./build/obj/pool.o
 OFILES=$(BFILES) ./build/obj/main.o
 
 .PHONY: all
@@ -36,6 +36,9 @@ program: $(OFILES)
 
 ./build/obj/http.o: ./src/protocol/http/http.c
 	$(CC) $(CFLG) ./src/protocol/http/http.c -o ./build/obj/http.o
+
+./build/obj/hpack.o: ./src/protocol/http/hpack.c
+	$(CC) $(CFLG) ./src/protocol/http/hpack.c -o ./build/obj/hpack.o
 
 ./build/obj/http2.o: ./src/protocol/http/http2.c
 	$(CC) $(CFLG) ./src/protocol/http/http2.c -o ./build/obj/http2.o
