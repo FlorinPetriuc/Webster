@@ -86,6 +86,11 @@ int handle_https_send_page(void *arg)
     int rRet;
     int errRet;
 
+    if(prm->file_len - prm->file_offset == 0)
+    {
+        goto out_empty_file;
+    }
+
     while(prm->file_offset != prm->file_len)
     {
         if(prm->out_buf_len - prm->out_buf_offset >= prm->file_len - prm->file_offset)
@@ -172,6 +177,7 @@ int handle_https_send_page(void *arg)
         return 2;
     }
 
+out_empty_file:
     close(prm->fileFD);
     prm->fileFD = -1;
 

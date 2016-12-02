@@ -136,7 +136,7 @@ struct http2_settings *process_http2_settings_request(const unsigned char *paylo
 
             case SETTINGS_MAX_FRAME_SIZE:
             {
-                ret->MAX_FRAME_SIZE = config_value;
+                ret->MAX_FRAME_SIZE = config_value & 0xFFFFFF;
             }
             break;
 
@@ -234,6 +234,12 @@ struct http_request_t *process_http2_header(const unsigned char *payload, struct
     }
 
     stream_id = ((payload[5] << 24) & 0x7F) | (payload[6] << 16) | (payload[7] << 8) | (payload[8]);
+
+    if(ret == NULL)
+    {
+        ret = xmalloc(sizeof(struct http_request_t));
+        memset(ret, 0, sizeof(struct http_request_t));
+    }
 
     if(req_type != HTTP_UNSUPPORTED_METHOD)
     {

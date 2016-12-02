@@ -16,6 +16,122 @@
 
 int handle_http2_send_page(void *arg)
 {
+    struct handler_prm_t *prm = arg;
+
+    int ret;
+
+send_again:
+
+    if(prm->file_len - prm->file_offset == 0)
+    {
+        goto out_empty_file;
+    }
+
+    if(prm->file_header_len == 0)
+    {
+        if(prm->client_h2settings->MAX_FRAME_SIZE <= prm->file_len - prm->file_offset)
+        {
+            prm->file_chunk_len = prm->client_h2settings->MAX_FRAME_SIZE;
+
+            //flags -> end stream = 0
+            prm->out_buffer[4] = 0;
+        }
+        else
+        {
+            prm->file_chunk_len = prm->file_len - prm->file_offset;
+
+            //flags -> end stream = 1
+            prm->out_buffer[4] = 1;
+        }
+
+        prm->out_buffer[0] = (prm->file_chunk_len >> 16) & 0xFF;
+        prm->out_buffer[1] = (prm->file_chunk_len >> 8) & 0xFF;
+        prm->out_buffer[2] = prm->file_chunk_len & 0xFF;
+
+        //type
+        prm->out_buffer[3] = HTTP2_DATA;
+
+        //reserved + stream id
+        prm->out_buffer[5] = (prm->request->stream_id >> 24) & 0x7F;
+        prm->out_buffer[6] = (prm->request->stream_id >> 16) & 0xFF;
+        prm->out_buffer[7] = (prm->request->stream_id >> 8) & 0xFF;
+        prm->out_buffer[8] = (prm->request->stream_id) & 0xFF;
+
+        prm->file_header_len = 9;
+    }
+
+    if(prm->out_buf_offset != prm->file_header_len)
+    {
+        ret = send(prm->sockFD, prm->out_buffer + prm->out_buf_offset,
+                            prm->file_header_len - prm->out_buf_offset, 0);
+
+        if(ret < 0)
+        {
+            if(errno == EAGAIN) return 0;
+            if(errno == EINTR) return 0;
+            if(errno == EWOULDBLOCK) return 0;
+
+            return 1;
+        }
+
+        if(ret == 0)
+        {
+            return 0;
+        }
+
+        prm->out_buf_offset += ret;
+
+        if(prm->out_buf_offset != prm->file_header_len)
+        {
+            return 0;
+        }
+    }
+
+    ret = sendfile(prm->sockFD, prm->fileFD, NULL, prm->file_chunk_len);
+
+    if(ret < 0)
+    {
+        if(errno == EAGAIN) return 0;
+        if(errno == EINTR) return 0;
+        if(errno == EWOULDBLOCK) return 0;
+
+        return 1;
+    }
+
+    if(ret == 0)
+    {
+        return 0;
+    }
+
+    prm->file_offset += ret;
+    prm->file_chunk_len -= ret;
+
+    if(prm->file_chunk_len)
+    {
+        return 0;
+    }
+
+    prm->file_header_len = 0;
+    prm->out_buf_offset = 0;
+
+    goto send_again;
+
+out_empty_file:
+    close(prm->fileFD);
+    prm->fileFD = -1;
+
+    free(prm->request->abs_path);
+    free(prm->request);
+    prm->request = NULL;
+
+    prm->file_len = 0;
+    prm->file_offset = 0;
+    prm->file_chunk_len = 0;
+    prm->file_header_len = 0;
+    prm->out_buf_offset = 0;
+
+    prm->processor = handle_http2_receive;
+
     return 0;
 }
 
@@ -74,6 +190,20 @@ again:
 
         case HTTP2_HEADERS:
         {
+            if(prm->client_h2settings == NULL)
+            {
+                logWrite(LOG_TYPE_ERROR, "Got http2 header without settings", 0);
+
+                return 1;
+            }
+
+            if(prm->client_h2settings->MAX_FRAME_SIZE == 0)
+            {
+                logWrite(LOG_TYPE_ERROR, "Client MAX_FRAME_SIZE is 0", 0);
+
+                return 1;
+            }
+
             prm->header = prm->in_buffer;
             prm->request = process_http2_header(prm->header, prm->request);
 
@@ -104,11 +234,6 @@ again:
         {
             prm->header = prm->in_buffer;
             prm->client_h2settings = process_http2_settings_request(prm->header, prm->client_h2settings);
-
-            if(prm->client_h2settings == NULL)
-            {
-                return 1;
-            }
         }
         break;
 
@@ -137,6 +262,8 @@ again:
 
     memcpy(prm->in_buffer, prm->in_buffer + len, prm->in_buf_offset - len);
     prm->in_buf_offset -= len;
+
+    logWrite(LOG_TYPE_INFO, "Moved %u bytes. Offset becomes %u.", 2, len, prm->in_buf_offset);
 
     prm->expiration_date = _utcTime() + 5;
 

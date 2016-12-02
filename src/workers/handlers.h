@@ -46,6 +46,7 @@ struct handler_prm_t
 
     unsigned long long file_offset;
     unsigned long long file_len;
+    uint32_t file_chunk_len;
     unsigned int file_header_len;
 
     const char *header;
