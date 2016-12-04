@@ -101,8 +101,6 @@ static unsigned char get_bit_at(const unsigned char v, const unsigned char pos)
 
     ret = (v >> (8 - pos - 1)) & 1;
 
-    logWrite(LOG_TYPE_INFO, "Bit at %u from 0x%hhx is %hhu", 3, pos, v, ret);
-
     return ret;
 }
 
@@ -123,12 +121,9 @@ static char *huffman_decode(const unsigned char *value, const unsigned char len)
 
     for(vIdx = 0; vIdx < len * 8; ++vIdx)
     {
-        logWrite(LOG_TYPE_INFO, "Decoder is processing byte %d: %hhu", 2, vIdx / 8, value[vIdx / 8]);
         char_encoded = (char_encoded << 1) | get_bit_at(value[vIdx / 8], vIdx & 7);
 
         ++bits_used;
-
-        logWrite(LOG_TYPE_INFO, "Huffman encoded char 0x%x on %hhu bits", 2, char_encoded, bits_used);
 
         if(i == sizeof(decoded_str))
         {

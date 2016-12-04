@@ -737,6 +737,7 @@ int handle_http_accept(void *arg)
     cli_prm->file_offset = 0;
     cli_prm->file_header_len = 0;
     cli_prm->file_chunk_len = 0;
+    cli_prm->file_chunk_loaded = 0;
 
     cli_prm->critical = 0;
     cli_prm->has_expiration = 1;

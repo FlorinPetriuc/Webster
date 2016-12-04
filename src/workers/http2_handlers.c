@@ -120,10 +120,6 @@ out_empty_file:
     close(prm->fileFD);
     prm->fileFD = -1;
 
-    free(prm->request->abs_path);
-    free(prm->request);
-    prm->request = NULL;
-
     prm->file_len = 0;
     prm->file_offset = 0;
     prm->file_chunk_len = 0;
