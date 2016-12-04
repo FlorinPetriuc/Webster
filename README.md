@@ -1,7 +1,7 @@
 # Webster
 
 Webster is a static content multithreaded webserver written in C based on epoll.
-It supports tls and non-encrypted HTTP 1.0 or HTTP 1.1 get requests.
+It supports HTTP 1.0, HTTP 1.1 or HTTP 2.0 over TCP or TLS get requests.
 
 ## Dependencies
 
