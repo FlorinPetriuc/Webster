@@ -130,18 +130,14 @@ send_again:
 
     ret = SSL_write(prm->ssl, prm->body, prm->file_chunk_len);
 
-    if(ret < 0)
+    if(ret <= 0)
     {
-        if(errno == EAGAIN) return 0;
-        if(errno == EINTR) return 0;
-        if(errno == EWOULDBLOCK) return 0;
+        errRet = SSL_get_error(prm->ssl, ret);
+
+        if(errRet == SSL_ERROR_WANT_READ) return 0;
+        if(errRet == SSL_ERROR_WANT_WRITE) return 0;
 
         return 1;
-    }
-
-    if(ret == 0)
-    {
-        return 0;
     }
 
     prm->file_offset += ret;
